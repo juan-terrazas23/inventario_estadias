@@ -14,26 +14,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         try {
             $conexion->beginTransaction();
 
-            // --- ACCIÓN 1: Verificación de Stock (Regla Anti-Negativos) ---
-            if ($datos->tipo == 'salida') {
-                // Consultamos el stock actual. 
-                // "FOR UPDATE" bloquea esta fila por unos milisegundos para que 
-                // dos empleados no puedan sacar el mismo producto al mismo tiempo exacto.
-                $queryCheck = "SELECT stock, nombre FROM productos WHERE id = :producto_id FOR UPDATE";
-                $stmtCheck = $conexion->prepare($queryCheck);
-                $stmtCheck->bindParam(":producto_id", $datos->producto_id);
-                $stmtCheck->execute();
-                
-                $productoActual = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-                
-                if (!$productoActual) {
-                    throw new Exception("El producto seleccionado no existe en la base de datos.");
-                }
+            // --- ACCIÓN 1: Verificación de Stock y de Producto Activo ---
+            // Traemos el stock y también revisamos si está activo
+            $queryCheck = "SELECT stock, nombre, activo FROM productos WHERE id = :producto_id FOR UPDATE";
+            $stmtCheck = $conexion->prepare($queryCheck);
+            $stmtCheck->bindParam(":producto_id", $datos->producto_id);
+            $stmtCheck->execute();
+            
+            $productoActual = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$productoActual) {
+                throw new Exception("El producto seleccionado no existe en la base de datos.");
+            }
 
-                // Si quieren sacar más de lo que hay, lanzamos un error que cancelará todo
-                if ($datos->cantidad > $productoActual['stock']) {
-                    throw new Exception("Stock insuficiente de " . $productoActual['nombre'] . ". Tienes " . $productoActual['stock'] . " y quieres sacar " . $datos->cantidad . ".");
-                }
+            // NUEVA REGLA: Si el producto está eliminado (activo = 0), bloqueamos el movimiento
+            if ($productoActual['activo'] == 0) {
+                throw new Exception("No puedes registrar movimientos. El producto '" . $productoActual['nombre'] . "' está eliminado o descontinuado.");
+            }
+
+            // REGLA DE STOCK: Bloquear si quieren sacar más de lo que hay
+            if ($datos->tipo == 'salida' && $datos->cantidad > $productoActual['stock']) {
+                throw new Exception("Stock insuficiente de " . $productoActual['nombre'] . ". Tienes " . $productoActual['stock'] . " y quieres sacar " . $datos->cantidad . ".");
             }
 
             // --- ACCIÓN 2: Guardar el movimiento en la bitácora ---
@@ -67,7 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         } catch(Exception $e) {
             $conexion->rollBack();
-            // 409 = Conflict (Hay un conflicto con las reglas del negocio, como falta de stock)
             http_response_code(409);
             echo json_encode(["error" => $e->getMessage()]);
         }

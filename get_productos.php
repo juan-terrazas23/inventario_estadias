@@ -5,22 +5,23 @@ header("Content-Type: application/json; charset=UTF-8");
 require_once 'conexion.php';
 
 try {
-    // Verificamos si tu compañera nos está enviando una palabra para buscar
     if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
-        $busqueda = "%" . $_GET['buscar'] . "%"; // Los % son comodines de MySQL
+        $busqueda = "%" . $_GET['buscar'] . "%";
         
+        // Agregamos la condición p.activo = 1
         $query = "SELECT p.id, p.nombre, p.precio, p.stock, c.nombre as categoria 
                   FROM productos p 
                   LEFT JOIN categorias c ON p.categoria_id = c.id
-                  WHERE p.nombre LIKE :busqueda"; // Filtramos por nombre
+                  WHERE p.nombre LIKE :busqueda AND p.activo = 1";
                   
         $stmt = $conexion->prepare($query);
         $stmt->bindParam(":busqueda", $busqueda);
     } else {
-        // Si no busca nada, le mandamos todos los productos (como lo tenías antes)
+        // Agregamos la condición p.activo = 1
         $query = "SELECT p.id, p.nombre, p.precio, p.stock, c.nombre as categoria 
                   FROM productos p 
-                  LEFT JOIN categorias c ON p.categoria_id = c.id";
+                  LEFT JOIN categorias c ON p.categoria_id = c.id
+                  WHERE p.activo = 1";
                   
         $stmt = $conexion->prepare($query);
     }
