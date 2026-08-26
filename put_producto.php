@@ -6,6 +6,15 @@ header("Access-Control-Allow-Methods: PUT");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 require_once 'conexion.php';
+require_once 'verificar_token.php'; // <-- AQUÍ PONEMOS AL GUARDIA EN LA PUERTA
+
+// ¡NUEVO NIVEL DE SEGURIDAD RBAC! 
+// Si el usuario es legítimo pero es de almacén, lo rebotamos (403 = Prohibido)
+if ($usuario_auth['rol'] !== 'recursos') {
+    http_response_code(403); 
+    echo json_encode(["error" => "No tienes permisos de Recursos para registrar proveedores."]);
+    exit();
+}
 
 // 2. Verificamos que el método sea PUT
 if ($_SERVER['REQUEST_METHOD'] == 'PUT') {
