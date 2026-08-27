@@ -2,7 +2,7 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 
-require_once 'conexion.php';
+require_once '../config/conexion.php';
 
 try {
     // Solo necesitamos el ID y el nombre para el menú desplegable

@@ -4,7 +4,7 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-require_once 'conexion.php';
+require_once '../config/conexion.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $datos = json_decode(file_get_contents("php://input"));

@@ -4,8 +4,8 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: DELETE");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-require_once 'conexion.php';
-require_once 'verificar_token.php'; // <-- AQUÍ PONEMOS AL GUARDIA EN LA PUERTA
+require_once '../config/conexion.php';
+require_once '../auth/verificar_token.php';
 
 // ¡NUEVO NIVEL DE SEGURIDAD RBAC! 
 // Si el usuario es legítimo pero es de almacén, lo rebotamos (403 = Prohibido)

@@ -4,7 +4,8 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-require_once 'conexion.php';
+require_once '../config/conexion.php';
+
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_FILES['imagen']) && isset($_POST['producto_id'])) {
@@ -23,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Generar un nombre único para evitar que fotos con el mismo nombre se sobrescriban
         $nombreFinal = "prod_" . $producto_id . "_" . time() . "." . $extension;
-        $rutaDestino = "uploads/" . $nombreFinal;
+        $rutaDestino = "../uploads/" . $nombreFinal;
 
         if (move_uploaded_file($archivo['tmp_name'], $rutaDestino)) {
             // Guardar la referencia en la base de datos

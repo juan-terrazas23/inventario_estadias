@@ -4,8 +4,8 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: PUT");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-require_once 'conexion.php';
-require_once 'verificar_token.php'; // Nuestro fiel guardia
+require_once '../config/conexion.php';
+require_once '../auth/verificar_token.php';
 
 // Solo Recursos puede cambiar contraseñas
 if ($usuario_auth['rol'] !== 'recursos') {

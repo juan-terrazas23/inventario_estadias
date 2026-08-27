@@ -2,8 +2,8 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 
-require_once 'conexion.php';
-require_once 'verificar_token.php'; // Llamamos al guardia
+require_once '../config/conexion.php';
+require_once '../auth/verificar_token.php';
 
 // Verificamos que solo el rol de 'recursos' pueda ver esta lista
 if ($usuario_auth['rol'] !== 'recursos') {

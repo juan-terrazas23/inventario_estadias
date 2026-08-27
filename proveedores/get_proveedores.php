@@ -2,7 +2,7 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 
-require_once 'conexion.php';
+require_once '../config/conexion.php';
 
 try {
     $query = "SELECT id, empresa, contacto, telefono, correo, direccion 

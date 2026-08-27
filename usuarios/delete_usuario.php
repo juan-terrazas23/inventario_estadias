@@ -4,8 +4,8 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: DELETE");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-require_once 'conexion.php';
-require_once 'verificar_token.php'; // Nuestro guardia
+require_once '../config/conexion.php';
+require_once '../auth/verificar_token.php';
 
 // 1. Verificamos que sea el administrador de recursos
 if ($usuario_auth['rol'] !== 'recursos') {
