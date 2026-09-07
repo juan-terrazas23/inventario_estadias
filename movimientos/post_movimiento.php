@@ -4,18 +4,20 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-// CORRECCIÓN: Rutas correctas a las carpetas config y auth
 require_once '../config/conexion.php';
 require_once '../auth/verificar_token.php';
 
-// CORRECCIÓN: Se retiró el candado que bloqueaba al rol de 'almacen', 
-// ya que el almacenista DEBE poder registrar salidas y entradas.
+// PERMISO AMPLIADO: Permitir tanto a 'recursos' como a 'almacen' registrar movimientos
+if ($usuario_auth['rol'] !== 'recursos' && $usuario_auth['rol'] !== 'almacen') {
+    http_response_code(403);
+    echo json_encode(["error" => "No tienes permisos suficientes para registrar este movimiento."]);
+    exit();
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $datos = json_decode(file_get_contents("php://input"));
 
     if (!empty($datos->producto_id) && !empty($datos->tipo) && !empty($datos->cantidad) && !empty($datos->motivo)) {
-
         try {
             $conexion->beginTransaction();
 
@@ -31,11 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
 
             if ($productoActual['activo'] == 0) {
-                throw new Exception("No puedes registrar movimientos. El producto '" . $productoActual['nombre'] . "' está eliminado o descontinuado.");
+                throw new Exception("El producto '" . $productoActual['nombre'] . "' está eliminado.");
             }
 
             if ($datos->tipo == 'salida' && $datos->cantidad > $productoActual['stock']) {
-                throw new Exception("Stock insuficiente de " . $productoActual['nombre'] . ". Tienes " . $productoActual['stock'] . " y quieres sacar " . $datos->cantidad . ".");
+                throw new Exception("Stock insuficiente de " . $productoActual['nombre'] . ".");
             }
 
             $queryMov = "INSERT INTO movimientos (producto_id, tipo, cantidad, motivo) 
@@ -62,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $conexion->commit();
 
             http_response_code(201);
-            echo json_encode(["mensaje" => "Movimiento registrado y stock actualizado con éxito."]);
+            echo json_encode(["mensaje" => "Movimiento registrado con éxito."]);
 
         } catch (Exception $e) {
             $conexion->rollBack();
@@ -71,10 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     } else {
         http_response_code(400);
-        echo json_encode(["error" => "Faltan datos. Necesitas producto_id, tipo, cantidad y motivo."]);
+        echo json_encode(["error" => "Faltan datos obligatorios (producto_id, tipo, cantidad, motivo)."]);
     }
-} else {
-    http_response_code(405);
-    echo json_encode(["error" => "Método no permitido. Solo se acepta POST."]);
 }
 ?>
