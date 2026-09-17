@@ -13,11 +13,11 @@ try {
     $queryTotal = "SELECT COUNT(*) as total FROM movimientos";
     $stmtTotal = $conexion->prepare($queryTotal);
     $stmtTotal->execute();
-    \(filaTotal =\)stmtTotal->fetch(PDO::FETCH_ASSOC);
-    \(totalRegistros =\)filaTotal['total'];
+    $filaTotal = $stmtTotal->fetch(PDO::FETCH_ASSOC);
+    $totalRegistros = $filaTotal['total'];
     
     // Calcular el total de páginas (redondeando hacia arriba)
-    \(totalPaginas = ceil(\)totalRegistros / $limite);
+    $totalPaginas = ceil($totalRegistros / $limite);
 
     // 3. --- EL CAMBIO MAESTRO: LEFT JOIN PARA ÁREAS Y PROVEEDORES ---
     $query = "SELECT m.id, p.nombre as producto, a.nombre as area, pr.empresa as proveedor, m.tipo, m.cantidad, m.fecha, m.motivo
@@ -28,13 +28,13 @@ try {
               ORDER BY m.fecha DESC 
               LIMIT :limite OFFSET :offset";
               
-    \(stmt =\)conexion->prepare($query);
+    $stmt = $conexion->prepare($query);
     
-    \(stmt->bindParam(':limite',\)limite, PDO::PARAM_INT);
-    \(stmt->bindParam(':offset',\)offset, PDO::PARAM_INT);
+    $stmt->bindParam(':limite', $limite, PDO::PARAM_INT);
+    $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
     
-    \(movimientos =\)stmt->fetchAll(PDO::FETCH_ASSOC);
+    $movimientos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 4. Empaquetar la respuesta: Mandamos los datos Y la información de las páginas
     http_response_code(200);
