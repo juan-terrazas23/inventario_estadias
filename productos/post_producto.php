@@ -7,50 +7,51 @@ header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers
 require_once '../config/conexion.php';
 require_once '../auth/verificar_token.php';
 
-// Permitir que tanto 'recursos' como 'almacen' puedan registrar productos nuevos
-if ($usuario_auth['rol'] !== 'recursos' && $usuario_auth['rol'] !== 'almacen') {
+// Permiso para crear productos (almacen o recursos)
+if ($usuario_auth['rol'] !== 'almacen' && $usuario_auth['rol'] !== 'recursos') {
     http_response_code(403);
-    echo json_encode(["error" => "No tienes permisos suficientes para registrar productos."]);
+    echo json_encode(["error" => "No tienes permisos para crear productos."]);
     exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $datos = json_decode(file_get_contents("php://input"));
 
-    if (!empty($datos->nombre)) {
-        // Valores por defecto por si no se envían opcionales
-        $precio = isset($datos->precio) ? $datos->precio : 0;
-        $stock = isset($datos->stock) ? $datos->stock : 0;
-        $categoria_id = isset($datos->categoria_id) ? $datos->categoria_id : 1;
-
+    if (!empty($datos->nombre) && !empty($datos->categoria_id) && isset($datos->precio) && isset($datos->stock)) {
         try {
-            $query = "INSERT INTO productos (nombre, precio, stock, categoria_id, activo) 
-                      VALUES (:nombre, :precio, :stock, :categoria_id, 1)";
+            // LÓGICA NUEVA: Si no mandan unidad de medida desde el front, por defecto asignamos el ID 1 (Pieza)
+            $unidad_id = isset($datos->unidad_id) ? $datos->unidad_id : 1;
+            
+            // Asignamos imagen por defecto si no envían una
+            $imagen = !empty($datos->imagen) ? $datos->imagen : 'default.jpg';
 
+            $query = "INSERT INTO productos (nombre, precio, stock, categoria_id, unidad_id, imagen, activo) 
+                      VALUES (:nombre, :precio, :stock, :categoria_id, :unidad_id, :imagen, 1)";
             $stmt = $conexion->prepare($query);
+
             $stmt->bindParam(":nombre", $datos->nombre);
-            $stmt->bindParam(":precio", $precio);
-            $stmt->bindParam(":stock", $stock);
-            $stmt->bindParam(":categoria_id", $categoria_id);
+            $stmt->bindParam(":precio", $datos->precio);
+            $stmt->bindParam(":stock", $datos->stock);
+            $stmt->bindParam(":categoria_id", $datos->categoria_id);
+            $stmt->bindParam(":unidad_id", $unidad_id);
+            $stmt->bindParam(":imagen", $imagen);
 
             if ($stmt->execute()) {
                 http_response_code(201);
-                echo json_encode(["mensaje" => "Producto registrado con éxito en el catálogo."]);
+                echo json_encode(["mensaje" => "Producto creado con éxito."]);
             } else {
-                http_response_code(500);
-                echo json_encode(["error" => "No se pudo guardar el producto en la base de datos."]);
+                throw new Exception("Error al insertar el producto.");
             }
-
-        } catch (PDOException $e) {
-            http_response_code(509);
-            echo json_encode(["error" => "Error de base de datos: " . $e->getMessage()]);
+        } catch(PDOException $e) {
+            http_response_code(500);
+            echo json_encode(["error" => "Error en BD: " . $e->getMessage()]);
+        } catch(Exception $e) {
+            http_response_code(400);
+            echo json_encode(["error" => $e->getMessage()]);
         }
     } else {
         http_response_code(400);
-        echo json_encode(["error" => "Falta la descripción del producto."]);
+        echo json_encode(["error" => "Faltan datos obligatorios (nombre, categoria, precio, stock)."]);
     }
-} else {
-    http_response_code(405);
-    echo json_encode(["error" => "Método no permitido."]);
 }
 ?>
