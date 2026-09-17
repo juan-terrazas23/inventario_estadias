@@ -5,18 +5,36 @@ header("Content-Type: application/json; charset=UTF-8");
 require_once '../config/conexion.php';
 
 try {
-    // Buscar productos con stock crítico (menor o igual a 10)
+    // 1. Buscar productos con stock crítico (menor o igual a 10)
     $query = "SELECT nombre, stock FROM productos WHERE stock <= 10 AND activo = 1";
     $stmt = $conexion->prepare($query);
     $stmt->execute();
-    $productosCriticos = $stmt$stmt->fetchAll(PDO::FETCH_ASSOC); // Corregido: $stmt->fetchAll
+    $productosCriticos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     if (count($productosCriticos) > 0) {
-        // Datos para el correo institucional del Administrador
-        $para = "administrador@congreso.gob.mx"; // Correo institucional o del admin
+        
+        // ========================================================
+        // NUEVA LÓGICA PROFESIONAL: OBTENER CORREOS DESDE LA BD
+        // ========================================================
+        $queryAdmins = "SELECT correo FROM usuarios WHERE rol = 'recursos' AND activo = 1";
+        $stmtAdmins = $conexion->prepare($queryAdmins);
+        $stmtAdmins->execute();
+        $admins = $stmtAdmins->fetchAll(PDO::FETCH_ASSOC);
+
+        // Extraemos solo los correos y los unimos con comas (formato aceptado por mail() )
+        $correos_destino = array_column($admins, 'correo');
+        
+        if (count($correos_destino) > 0) {
+            $para = implode(", ", $correos_destino); // Ejemplo resultado: "admin1@correo.com, admin2@correo.com"
+        } else {
+            // Correo de emergencia por si alguien borra a todos los administradores
+            $para = "solanohelena40@gmail.com";
+        }
+        // ========================================================
+
         $asunto = "⚠️ ALERTA CRÍTICA: Productos con stock bajo en el Almacén";
         
-        $mensaje = "Hola, Administrador.\n\nEl sistema de inventario ha detectado los siguientes productos con stock bajo que requieren reabastecimiento urgente:\n\n";
+        $mensaje = "Hola, equipo de Recursos / Administración.\n\nEl sistema de inventario ha detectado los siguientes productos con stock bajo que requieren reabastecimiento urgente:\n\n";
         
         foreach ($productosCriticos as $prod) {
             $mensaje .= "- " . $prod['nombre'] . " | Stock actual: " . $prod['stock'] . " unidades\n";
@@ -27,13 +45,15 @@ try {
         $cabeceras = "From: noreply@inventario-congreso.com\r\n" .
                      "X-Mailer: PHP/" . phpversion();
 
-        // Enviar correo usando la función nativa de PHP (requiere servidor de correo configurado o XAMPP con Mailhog/Sendmail)
+        // Intentar enviar el correo
         @mail($para, $asunto, $mensaje, $cabeceras);
 
         http_response_code(200);
         echo json_encode([
-            "alerta" => "Se detectó escasez y se ha enviado la notificación por correo.",
-            "productos_afectados" => count($productosCriticos)
+            "alerta" => "Se detectó escasez y se disparó la función de correo.",
+            "destinatarios_encontrados" => $para, // Para que veas a quién se le mandó en Postman
+            "productos_afectados" => count($productosCriticos),
+            "vista_previa_del_correo" => $mensaje
         ]);
     } else {
         http_response_code(200);
