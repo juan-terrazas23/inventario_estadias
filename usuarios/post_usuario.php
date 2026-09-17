@@ -5,58 +5,60 @@ header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 require_once '../config/conexion.php';
-require_once '../auth/verificar_token.php';
-
-// Bloqueamos a almacén
-if ($usuario_auth['rol'] !== 'recursos') {
-    http_response_code(403);
-    echo json_encode(["error" => "No tienes permisos para crear nuevos empleados."]);
-    exit();
-}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $datos = json_decode(file_get_contents("php://input"));
 
-    // Ahora exigimos que desde el frontend manden qué ROL va a tener el nuevo usuario
+    // Validar que vengan todos los campos necesarios
     if (!empty($datos->nombre) && !empty($datos->correo) && !empty($datos->password) && !empty($datos->rol)) {
-        
         try {
-            // Verificar si el NOMBRE o el CORREO ya están ocupados
-            $checkQuery = "SELECT id FROM usuarios WHERE nombre = :nombre OR correo = :correo";
-            $checkStmt = $conexion->prepare($checkQuery);
-            $checkStmt->bindParam(":nombre", $datos->nombre);
-            $checkStmt->bindParam(":correo", $datos->correo);
-            $checkStmt->execute();
-
-            if ($checkStmt->rowCount() > 0) {
-                http_response_code(400); 
-                echo json_encode(["error" => "El nombre de usuario o el correo ya están ocupados."]);
-                exit();
+            // Encriptar la contraseña de forma segura
+            $password_hash = password_hash($datos->password, PASSWORD_BCRYPT);
+            
+            // Limpiar el texto del rol que nos envían
+            $rol_texto = strtolower(trim($datos->rol));
+            
+            // Lógica para asignar el rol_id correcto basado en el texto enviado
+            $rol_id_asignado = 2; // Por defecto asignamos almacen (2) por seguridad
+            
+            if ($rol_texto === 'recursos') {
+                $rol_id_asignado = 1;
+            } elseif ($rol_texto === 'almacen') {
+                $rol_id_asignado = 2;
+            } else {
+                throw new Exception("El rol especificado no es válido. Usa 'recursos' o 'almacen'.");
             }
 
-            // Encriptamos la contraseña
-            $password_encriptada = password_hash($datos->password, PASSWORD_DEFAULT);
+            // Inserción en la base de datos coordinando la palabra con su ID numérico
+            $query = "INSERT INTO usuarios (nombre, correo, password, rol, activo, rol_id) 
+                      VALUES (:nombre, :correo, :password, :rol, 1, :rol_id)";
             
-            // Insertamos al nuevo empleado con el rol que eligió el administrador
-            $query = "INSERT INTO usuarios (nombre, correo, password, rol) VALUES (:nombre, :correo, :password, :rol)";
             $stmt = $conexion->prepare($query);
+            $stmt->bindParam(':nombre', $datos->nombre);
+            $stmt->bindParam(':correo', $datos->correo);
+            $stmt->bindParam(':password', $password_hash);
+            $stmt->bindParam(':rol', $rol_texto); 
+            $stmt->bindParam(':rol_id', $rol_id_asignado, PDO::PARAM_INT);
             
-            $stmt->bindParam(":nombre", $datos->nombre);
-            $stmt->bindParam(":correo", $datos->correo);
-            $stmt->bindParam(":password", $password_encriptada);
-            $stmt->bindParam(":rol", $datos->rol);
+            $stmt->execute();
 
-            if($stmt->execute()) {
-                http_response_code(201);
-                echo json_encode(["mensaje" => "Empleado creado exitosamente en el sistema."]);
-            }
-        } catch(PDOException $e) {
-            http_response_code(500);
-            echo json_encode(["error" => "Error en el servidor: " . $e->getMessage()]);
+            http_response_code(201);
+            echo json_encode([
+                "mensaje" => "Usuario creado exitosamente.",
+                "rol_asignado" => $rol_texto,
+                "rol_id_asignado" => $rol_id_asignado
+            ]);
+
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(["error" => "Error al crear usuario: " . $e->getMessage()]);
         }
     } else {
         http_response_code(400);
-        echo json_encode(["error" => "Faltan datos. Se requiere nombre, correo, password y rol."]);
+        echo json_encode(["error" => "Faltan datos obligatorios (nombre, correo, password, rol)."]);
     }
+} else {
+    http_response_code(405);
+    echo json_encode(["error" => "Método no permitido. Usa POST."]);
 }
 ?>
