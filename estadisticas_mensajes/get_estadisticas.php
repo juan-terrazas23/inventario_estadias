@@ -38,17 +38,15 @@ try {
     $top_areas = $stmtA->fetchAll(PDO::FETCH_ASSOC);
 
     // 3. Productos con stock bajo (ej. stock menor o igual a 10)
-    $queryStockBajo = "SELECT id, nombre, stock, precio FROM productos WHERE stock <= 10 AND activo = 1";
-    $stmtS = $conexion->prepare($queryStockBajo);
-    $stmtS->execute();
-    $stock_bajo = $stmtS->fetchAll(PDO::FETCH_ASSOC);
-
-    http_response_code(200);
-    echo json_encode([
-        "top_productos" => $top_productos,
-        "top_areas" => $top_areas,
-        "stock_bajo" => $stock_bajo
-    ]);
+    // --- 3. PRODUCTOS CON STOCK BAJO (ACTUALIZADO A STOCK DINÁMICO) ---
+    $queryStockBajo = "SELECT nombre, stock, stock_minimo 
+                       FROM productos 
+                       WHERE stock <= stock_minimo AND activo = 1 
+                       ORDER BY stock ASC 
+                       LIMIT 10";
+    $stmtStockBajo = $conexion->prepare($queryStockBajo);
+    $stmtStockBajo->execute();
+    $estadisticas['stock_bajo'] = $stmtStockBajo->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
     http_response_code(500);
