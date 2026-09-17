@@ -10,9 +10,9 @@ require_once '../auth/verificar_token.php';
 
 // ¡NUEVO NIVEL DE SEGURIDAD RBAC! 
 // Si el usuario es legítimo pero es de almacén, lo rebotamos (403 = Prohibido)
-if ($usuario_auth['rol'] !== 'recursos') {
+if ($usuario_auth['rol'] !== 'almacen' && $usuario_auth['rol'] !== 'recursos') {
     http_response_code(403); 
-    echo json_encode(["error" => "No tienes permisos de Recursos para registrar proveedores."]);
+    echo json_encode(["error" => "No tienes permisos para registrar productos."]);
     exit();
 }
 
