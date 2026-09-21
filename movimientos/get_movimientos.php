@@ -20,7 +20,7 @@ try {
     $totalPaginas = ceil($totalRegistros / $limite);
 
     // 3. --- EL CAMBIO MAESTRO: LEFT JOIN PARA ÁREAS Y PROVEEDORES ---
-    $query = "SELECT m.id, p.nombre as producto, a.nombre as area, pr.empresa as proveedor, m.tipo, m.cantidad, m.fecha, m.motivo
+    $query = "SELECT m.id, p.nombre as producto, a.nombre as area, pr.empresa as proveedor, m.tipo, m.cantidad, m.fecha, m.motivo, m.persona_responsable
               FROM movimientos m 
               INNER JOIN productos p ON m.producto_id = p.id 
               LEFT JOIN areas a ON m.area_id = a.id
