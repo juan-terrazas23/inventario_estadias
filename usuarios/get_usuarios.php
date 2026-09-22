@@ -13,17 +13,17 @@ if ($usuario_auth['rol'] !== 'recursos') {
 }
 
 try {
-    // NO seleccionamos el password por seguridad, solo lo que el admin necesita ver
-    $query = "SELECT id, nombre, correo, rol FROM usuarios ORDER BY id DESC";
+    // LA SOLUCIÓN: Agregamos "WHERE activo = 1" para que el servidor YA NO mande a los eliminados
+    $query = "SELECT id, nombre, correo, rol FROM usuarios WHERE activo = 1 ORDER BY id DESC";
     $stmt = $conexion->prepare($query);
     $stmt->execute();
-    
+
     $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     http_response_code(200);
     echo json_encode($usuarios);
 
-} catch(PDOException $e) {
+} catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(["error" => "Error al obtener usuarios: " . $e->getMessage()]);
 }
