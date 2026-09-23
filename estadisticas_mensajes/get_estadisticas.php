@@ -8,9 +8,8 @@ require_once '../config/conexion.php';
 require_once '../authverificar_token.php'; 
 
 try {
-    // Verificación de seguridad para el rol 'recursos'
-    $usuario = verificarToken();
-    if (!$usuario || $usuario['rol'] !== 'recursos') {
+    // Usar la autenticación global del proyecto ($usuario_auth)
+    if (!isset($usuario_auth) || $usuario_auth['rol'] !== 'recursos') {
         http_response_code(403);
         echo json_encode(["error" => "Acceso denegado. Se requiere rol de recursos."]);
         exit();
