@@ -4,7 +4,7 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Headers: Authorization, Content-Type");
 
 require_once '../config/conexion.php';
-require_once 'verificar_token.php'; 
+require_once '../auth/verificar_token.php'; 
 
 try {
     // Verificación de seguridad
@@ -29,12 +29,13 @@ try {
     $stmt1->execute();
     $estadisticas['top_productos'] = $stmt1->fetchAll(PDO::FETCH_ASSOC);
 
-    // --- 2. TOP 5 ÁREAS QUE MÁS PIDEN MATERIAL ---
-    $queryTopAreas = "SELECT area_destino, COUNT(*) as total_pedidos 
-                      FROM movimientos 
-                      WHERE tipo = 'salida' 
-                      GROUP BY area_destino 
-                      ORDER BY total_pedidos DESC 
+   // --- 2. TOP 5 ÁREAS QUE MÁS PIDEN MATERIAL (Corregido) ---
+    $queryTopAreas = "SELECT a.nombre as area, SUM(m.cantidad) as total_consumido 
+                      FROM movimientos m 
+                      INNER JOIN areas a ON m.area_id = a.id 
+                      WHERE m.tipo = 'salida' 
+                      GROUP BY m.area_id 
+                      ORDER BY total_consumido DESC 
                       LIMIT 5";
     $stmt2 = $conexion->prepare($queryTopAreas);
     $stmt2->execute();

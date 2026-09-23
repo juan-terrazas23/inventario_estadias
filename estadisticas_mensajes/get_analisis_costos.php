@@ -4,7 +4,7 @@ header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Headers: Authorization, Content-Type");
 
 require_once '../config/conexion.php';
-require_once 'verificar_token.php'; 
+require_once '../auth/verificar_token.php'; 
 
 try {
     $usuario = verificarToken();
