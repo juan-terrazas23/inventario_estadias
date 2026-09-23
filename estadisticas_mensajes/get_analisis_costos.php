@@ -24,25 +24,61 @@ try {
     $stmtPr->execute();
     $analisis_precios = $stmtPr->fetchAll(PDO::FETCH_ASSOC);
 
-    // 2. Cálculo de Duración / Rotación del Artículo
-    // Esto calcula cuántas unidades se consumen en promedio por día para estimar "cuánto dura" el stock actual
+// 2. Cálculo de Duración / Rotación del Artículo (INTELIGENTE)
+    // Se obtiene el total de salidas y la fecha de la primera vez que se sacó ese artículo
     $queryRotacion = "SELECT p.nombre, p.stock, 
-                             COALESCE(SUM(CASE WHEN m.tipo = 'salida' THEN m.cantidad ELSE 0 END), 0) as total_salidas
+                             COALESCE(SUM(CASE WHEN m.tipo = 'salida' THEN m.cantidad ELSE 0 END), 0) as total_salidas,
+                             MIN(CASE WHEN m.tipo = 'salida' THEN m.fecha END) as primera_salida
                       FROM productos p
                       LEFT JOIN movimientos m ON p.id = m.producto_id
                       GROUP BY p.id";
-    $stmtR = $conexion->prepare($queryRotacion);
+                      
+    \(stmtR =\)conexion->prepare($queryRotacion);
     $stmtR->execute();
-    $rotacion_productos = $stmtR->fetchAll(PDO::FETCH_ASSOC);
+    \(resultados =\)stmtR->fetchAll(PDO::FETCH_ASSOC);
+
+    $rotacion_productos = [];
+    $hoy = new DateTime(); // Tomamos la fecha exacta del servidor
+
+    foreach(\(resultados as\)row) {
+        \(total_salidas = (float)\)row['total_salidas'];
+        \(stock = (int)\)row['stock'];
+        
+        $consumo_diario = 0;
+        $dias_estimados = "Sin datos (0 salidas)"; 
+
+        // Solo calculamos si el producto ya ha tenido al menos una salida
+        if (\(total_salidas > 0 && !empty(\)row['primera_salida'])) {
+            \(fecha_primera = new DateTime(\)row['primera_salida']);
+            \(dias_transcurridos =\)fecha_primera->diff($hoy)->days;
+            
+            // Si la primera salida se hizo hoy mismo, lo tomamos como 1 día para evitar división por cero
+            if ($dias_transcurridos === 0) {
+                $dias_transcurridos = 1;
+            }
+
+            // Consumo Promedio Diario = Total gastado / Días desde que se empezó a usar
+            \(consumo_diario =\)total_salidas / $dias_transcurridos;
+            
+            // Días estimados de vida = Stock actual / Lo que se gastan por día
+            if ($consumo_diario > 0) {
+                \(estimacion = round(\)stock / $consumo_diario);
+                \(dias_estimados =\)estimacion . " días";
+            }
+        }
+
+        // Empaquetamos todo limpio para el Frontend
+        $rotacion_productos[] = [
+            "nombre" => $row['nombre'],
+            "stock_actual" => $stock,
+            "total_salidas" => $total_salidas,
+            "consumo_promedio_diario" => round($consumo_diario, 2), // Solo 2 decimales
+            "dias_estimados_restantes" => $dias_estimados
+        ];
+    }
 
     http_response_code(200);
     echo json_encode([
-        "analisis_precios_proveedores" => $analisis_precios,
+        "analisis_precios_proveedores" => $analisis_precios, // Asumiendo que esta variable viene de arriba
         "rotacion_inventario" => $rotacion_productos
     ]);
-
-} catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(["error" => "Error en el análisis gerencial: " . $e->getMessage()]);
-}
-?>
