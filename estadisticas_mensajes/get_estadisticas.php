@@ -1,54 +1,60 @@
 <?php
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Headers: Authorization, Content-Type");
 
 require_once '../config/conexion.php';
-require_once '../auth/verificar_token.php';
-
-// Solo administradores pueden ver métricas gerenciales
-if ($usuario_auth['rol'] !== 'recursos') {
-    http_response_code(403);
-    echo json_encode(["error" => "Acceso restringido al panel de administración."]);
-    exit();
-}
+require_once 'verificar_token.php'; 
 
 try {
-    // 1. Top productos más solicitados en salidas
-    $queryProductos = "SELECT p.nombre, SUM(m.cantidad) as total_pedido 
-                       FROM movimientos m 
-                       INNER JOIN productos p ON m.producto_id = p.id 
-                       WHERE m.tipo = 'salida' 
-                       GROUP BY m.producto_id 
-                       ORDER BY total_pedido DESC 
-                       LIMIT 5";
-    $stmtP = $conexion->prepare($queryProductos);
-    $stmtP->execute();
-    $top_productos = $stmtP->fetchAll(PDO::FETCH_ASSOC);
+    // Verificación de seguridad
+    $usuario = verificarToken();
+    if (!$usuario || $usuario['rol'] !== 'recursos') {
+        http_response_code(403);
+        echo json_encode(["error" => "Acceso denegado. Se requiere rol de recursos."]);
+        exit();
+    }
 
-    // 2. Áreas que consumen más material
-    $queryAreas = "SELECT a.nombre as area, SUM(m.cantidad) as total_consumido 
-                   FROM movimientos m 
-                   INNER JOIN areas a ON m.area_id = a.id 
-                   WHERE m.tipo = 'salida' 
-                   GROUP BY m.area_id 
-                   ORDER BY total_consumido DESC 
-                   LIMIT 5";
-    $stmtA = $conexion->prepare($queryAreas);
-    $stmtA->execute();
-    $top_areas = $stmtA->fetchAll(PDO::FETCH_ASSOC);
+    $estadisticas = [];
 
-    // 3. Productos con stock bajo (ej. stock menor o igual a 10)
-    // --- 3. PRODUCTOS CON STOCK BAJO (ACTUALIZADO A STOCK DINÁMICO) ---
+    // --- 1. TOP 5 PRODUCTOS MÁS CONSUMIDOS ---
+    $queryTopProductos = "SELECT p.nombre, SUM(m.cantidad) as total_salidas 
+                          FROM movimientos m 
+                          JOIN productos p ON m.producto_id = p.id 
+                          WHERE m.tipo = 'salida' 
+                          GROUP BY p.id 
+                          ORDER BY total_salidas DESC 
+                          LIMIT 5";
+    $stmt1 = $conexion->prepare($queryTopProductos);
+    $stmt1->execute();
+    $estadisticas['top_productos'] = $stmt1->fetchAll(PDO::FETCH_ASSOC);
+
+    // --- 2. TOP 5 ÁREAS QUE MÁS PIDEN MATERIAL ---
+    $queryTopAreas = "SELECT area_destino, COUNT(*) as total_pedidos 
+                      FROM movimientos 
+                      WHERE tipo = 'salida' 
+                      GROUP BY area_destino 
+                      ORDER BY total_pedidos DESC 
+                      LIMIT 5";
+    $stmt2 = $conexion->prepare($queryTopAreas);
+    $stmt2->execute();
+    $estadisticas['top_areas'] = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+
+    // --- 3. ALERTA DE STOCK BAJO (Con los límites inteligentes) ---
     $queryStockBajo = "SELECT nombre, stock, stock_minimo 
                        FROM productos 
                        WHERE stock <= stock_minimo AND activo = 1 
                        ORDER BY stock ASC 
                        LIMIT 10";
-    $stmtStockBajo = $conexion->prepare($queryStockBajo);
-    $stmtStockBajo->execute();
-    $estadisticas['stock_bajo'] = $stmtStockBajo->fetchAll(PDO::FETCH_ASSOC);
+    $stmt3 = $conexion->prepare($queryStockBajo);
+    $stmt3->execute();
+    $estadisticas['stock_bajo'] = $stmt3->fetchAll(PDO::FETCH_ASSOC);
 
-} catch (PDOException $e) {
+    // Enviar el arreglo al frontend
+    http_response_code(200);
+    echo json_encode($estadisticas);
+
+} catch (Exception $e) {
     http_response_code(500);
     echo json_encode(["error" => "Error al obtener estadísticas: " . $e->getMessage()]);
 }
