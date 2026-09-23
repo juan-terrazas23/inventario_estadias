@@ -3,13 +3,13 @@ header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Headers: Authorization, Content-Type");
 
+// Rutas ajustadas para salir de la subcarpeta Estadisticas_mensajes
 require_once '../config/conexion.php';
-require_once '../auth/verificar_token.php'; 
+require_once '../verificar_token.php'; 
 
 try {
+    // Verificación de seguridad para el rol 'recursos'
     $usuario = verificarToken();
-    
-    // Validar por el rol 'recursos' (no 'administrador')
     if (!$usuario || $usuario['rol'] !== 'recursos') {
         http_response_code(403);
         echo json_encode(["error" => "Acceso denegado. Se requiere rol de recursos."]);
@@ -18,12 +18,14 @@ try {
 
     $analisis_precios = []; 
 
-    $queryRotacion = "SELECT p.nombre, p.stock, 
+    // 2. Consulta Base de Rotación e Historial de Salidas (Optimizada)
+    $queryRotacion = "SELECT p.id, p.nombre, p.stock, 
                              COALESCE(SUM(CASE WHEN m.tipo = 'salida' THEN m.cantidad ELSE 0 END), 0) as total_salidas,
                              MIN(CASE WHEN m.tipo = 'salida' THEN m.fecha END) as primera_salida
                       FROM productos p
                       LEFT JOIN movimientos m ON p.id = m.producto_id
-                      GROUP BY p.id";
+                      WHERE p.activo = 1
+                      GROUP BY p.id, p.nombre, p.stock";
                       
     $stmtR = $conexion->prepare($queryRotacion);
     $stmtR->execute();
@@ -66,6 +68,7 @@ try {
         ];
     }
 
+    // Respuesta final estructurada para el frontend
     http_response_code(200);
     echo json_encode([
         "analisis_precios_proveedores" => $analisis_precios, 

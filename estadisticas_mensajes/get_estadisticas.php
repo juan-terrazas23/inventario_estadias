@@ -3,11 +3,12 @@ header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Headers: Authorization, Content-Type");
 
+// Rutas ajustadas para salir de la subcarpeta Estadisticas_mensajes
 require_once '../config/conexion.php';
-require_once '../auth/verificar_token.php'; 
+require_once '../authverificar_token.php'; 
 
 try {
-    // Verificación de seguridad
+    // Verificación de seguridad para el rol 'recursos'
     $usuario = verificarToken();
     if (!$usuario || $usuario['rol'] !== 'recursos') {
         http_response_code(403);
@@ -17,31 +18,30 @@ try {
 
     $estadisticas = [];
 
-    // --- 1. TOP 5 PRODUCTOS MÁS CONSUMIDOS ---
+    // --- 1. TOP 5 PRODUCTOS MÁS CONSUMIDOS (Optimizado) ---
     $queryTopProductos = "SELECT p.nombre, SUM(m.cantidad) as total_salidas 
                           FROM movimientos m 
                           JOIN productos p ON m.producto_id = p.id 
-                          WHERE m.tipo = 'salida' 
-                          GROUP BY p.id 
+                          WHERE m.tipo = 'salida' AND p.activo = 1
+                          GROUP BY p.id, p.nombre 
                           ORDER BY total_salidas DESC 
                           LIMIT 5";
     $stmt1 = $conexion->prepare($queryTopProductos);
     $stmt1->execute();
     $estadisticas['top_productos'] = $stmt1->fetchAll(PDO::FETCH_ASSOC);
 
-   // --- 2. TOP 5 ÁREAS QUE MÁS PIDEN MATERIAL (Corregido) ---
-    $queryTopAreas = "SELECT a.nombre as area, SUM(m.cantidad) as total_consumido 
-                      FROM movimientos m 
-                      INNER JOIN areas a ON m.area_id = a.id 
-                      WHERE m.tipo = 'salida' 
-                      GROUP BY m.area_id 
-                      ORDER BY total_consumido DESC 
+    // --- 2. TOP 5 ÁREAS QUE MÁS PIDEN MATERIAL (Optimizada) ---
+    $queryTopAreas = "SELECT area_destino, COUNT(*) as total_pedidos 
+                      FROM movimientos 
+                      WHERE tipo = 'salida' AND area_destino IS NOT NULL AND TRIM(area_destino) != ''
+                      GROUP BY area_destino 
+                      ORDER BY total_pedidos DESC 
                       LIMIT 5";
     $stmt2 = $conexion->prepare($queryTopAreas);
     $stmt2->execute();
     $estadisticas['top_areas'] = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 
-    // --- 3. ALERTA DE STOCK BAJO (Con los límites inteligentes) ---
+    // --- 3. ALERTA DE STOCK BAJO ---
     $queryStockBajo = "SELECT nombre, stock, stock_minimo 
                        FROM productos 
                        WHERE stock <= stock_minimo AND activo = 1 
