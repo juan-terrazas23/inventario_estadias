@@ -5,7 +5,7 @@ header("Access-Control-Allow-Headers: Authorization, Content-Type");
 
 // Rutas ajustadas para salir de la subcarpeta Estadisticas_mensajes
 require_once '../config/conexion.php';
-require_once '../verificar_token.php'; 
+require_once '../auth/verificar_token.php'; 
 
 try {
     // Usar la autenticación global del proyecto ($usuario_auth)
