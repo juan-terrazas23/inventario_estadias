@@ -289,6 +289,13 @@
                                     <input type="number" class="form-control" id="nuevo-stock-inicial" min="0"
                                         placeholder="0">
                                 </div>
+
+                                <!-- NUEVO: Campo de Stock Mínimo -->
+                                <div class="mb-3">
+                                    <label for="nuevo-stock-minimo" class="form-label">Stock Mínimo (Alerta)</label>
+                                    <input type="number" class="form-control" id="nuevo-stock-minimo" min="1"
+                                        placeholder="Ej. 5">
+                                </div>
                                 <button type="button" id="btn-guardar-articulo" class="btn btn-custom w-100">
                                     <i class="bi bi-check-circle me-2"></i>Guardar en el Catálogo
                                 </button>

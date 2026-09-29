@@ -462,8 +462,9 @@ function actualizarVistaCarritoEntrada() {
 
 if (btnRegistrarEntrada) {
     btnRegistrarEntrada.addEventListener('click', async () => {
-        if (inputFechaEntrada.value === '' || inputProveedor.value.trim() === '' || inputFactura.value.trim() === '') {
-            Swal.fire({ icon: 'info', title: 'Faltan datos', text: 'Por favor completa la Fecha, Proveedor y No. de Factura.', confirmButtonColor: '#8c837b' });
+        // Se eliminó la validación de inputFactura que bloqueaba el código
+        if (inputFechaEntrada.value === '' || inputProveedor.value.trim() === '') {
+            Swal.fire({ icon: 'info', title: 'Faltan datos', text: 'Por favor completa la Fecha y el Proveedor.', confirmButtonColor: '#8c837b' });
             return;
         }
 
@@ -486,7 +487,7 @@ if (btnRegistrarEntrada) {
                         cantidad: itemCarrito.cantidad,      
                         persona_responsable: "Encargado Almacén", 
                         proveedor_id: parseInt(inputProveedor.value), 
-                        motivo: `Factura: ${inputFactura.value}` 
+                        motivo: `Recepción de proveedor` // Motivo por defecto
                     })
                 });
             }
@@ -504,7 +505,7 @@ if (btnRegistrarEntrada) {
             actualizarVistaCarritoEntrada(); 
             inputFechaEntrada.value = '';
             inputProveedor.value = '';
-            inputFactura.value = '';
+            // Se eliminó inputFactura.value = '';
             inputDescEntrada.value = '';
             inputCantEntrada.value = '';
             tablaInvEntrada.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">Escribe en "Buscar Insumo a Sumar" para ver coincidencias...</td></tr>`;
@@ -521,13 +522,13 @@ if (btnRegistrarEntrada) {
 const inputNuevoId = document.getElementById('nuevo-id');
 const inputNuevaDesc = document.getElementById('nueva-descripcion');
 const inputNuevoStockIni = document.getElementById('nuevo-stock-inicial');
+const inputNuevoStockMin = document.getElementById('nuevo-stock-minimo'); // NUEVO
 const selectNuevaCategoria = document.getElementById('nueva-categoria'); 
 const btnGuardarArticulo = document.getElementById('btn-guardar-articulo');
 const tablaGestionCatalogo = document.getElementById('tabla-gestion-catalogo');
 
 const inputBuscarCatalogo = document.getElementById('buscar-catalogo');
 const selectFiltroCategoria = document.getElementById('filtro-categoria');
-
 function renderizarCatalogoGeneral(datos = inventarioGlobal) {
     if (!tablaGestionCatalogo) return;
     tablaGestionCatalogo.innerHTML = "";
@@ -568,13 +569,15 @@ if(selectFiltroCategoria) selectFiltroCategoria.addEventListener('change', filtr
 
 if (btnGuardarArticulo) {
     btnGuardarArticulo.addEventListener('click', async () => {
-        const descripcion = inputNuevaDesc.value.trim();
+        // Se mantiene el toUpperCase() que agregamos en el paso anterior
+        const descripcion = inputNuevaDesc.value.trim().toUpperCase();
         const stock = parseInt(inputNuevoStockIni.value);
-        const categoriaSeleccionada = selectNuevaCategoria.value; // Leemos la del select
+        const stockMinimo = parseInt(inputNuevoStockMin.value); // NUEVO
+        const categoriaSeleccionada = selectNuevaCategoria.value;
 
-        // Agregamos la validación de la categoría
-        if (descripcion === '' || isNaN(stock) || selectNuevaUnidad.value === '' || categoriaSeleccionada === '') {
-            Swal.fire({ icon: 'warning', title: 'Campos incompletos', text: 'Por favor llena la descripción, la categoría, la unidad de medida y el stock inicial.', confirmButtonColor: '#8c837b' });
+        // Se agregó la validación del stock_minimo
+        if (descripcion === '' || isNaN(stock) || isNaN(stockMinimo) || selectNuevaUnidad.value === '' || categoriaSeleccionada === '') {
+            Swal.fire({ icon: 'warning', title: 'Campos incompletos', text: 'Por favor llena la descripción, la categoría, la unidad, el stock inicial y el stock mínimo.', confirmButtonColor: '#8c837b' });
             return;
         }
 
@@ -585,11 +588,11 @@ if (btnGuardarArticulo) {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + token
                 },
-                // Ahora se envía dinámicamente la categoría al backend
                 body: JSON.stringify({ 
                     nombre: descripcion, 
                     precio: 0, 
                     stock: stock, 
+                    stock_minimo: stockMinimo, // NUEVO
                     categoria_id: parseInt(categoriaSeleccionada),
                     unidad_id: parseInt(selectNuevaUnidad.value) 
                 })
@@ -607,8 +610,9 @@ if (btnGuardarArticulo) {
 
                 inputNuevaDesc.value = '';
                 selectNuevaUnidad.value = ''; 
-                selectNuevaCategoria.value = ''; // Limpiar select
+                selectNuevaCategoria.value = ''; 
                 inputNuevoStockIni.value = '';
+                inputNuevoStockMin.value = ''; // NUEVO Lympiar el campo
                 
                 cargarInventarioDesdeBD();
             } else {
