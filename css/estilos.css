@@ -1,0 +1,93 @@
+/* =========================================
+   ESTILOS GENERALES
+   ========================================= */
+body {
+    background-color: #f4f3f0;
+    color: #3b3b3b;
+}
+
+/* =========================================
+   BARRA DE NAVEGACIÓN
+   ========================================= */
+.navbar-custom {
+    background-color: #dcd7d0;
+    border-bottom: 1px solid #c9c3ba;
+}
+
+/* =========================================
+   TARJETAS Y TABLAS
+   ========================================= */
+.card-header-custom {
+    background-color: #e9e6e1;
+    color: #4a4a4a;
+    font-weight: 600;
+    border-bottom: 1px solid #dcd7d0;
+}
+.table-header-custom {
+    background-color: #ebe8e3 !important;
+    color: #4a4a4a !important;
+}
+
+/* =========================================
+   BOTONES E INPUTS
+   ========================================= */
+.btn-custom {
+    background-color: #8c837b;
+    color: #ffffff;
+    border: none;
+    transition: 0.2s;
+    font-weight: 500;
+}
+.btn-custom:hover {
+    background-color: #756d66;
+    color: #ffffff;
+}
+.form-control, .form-select {
+    border-color: #dcd7d0;
+    background-color: #ffffff;
+}
+.form-control:focus, .form-select:focus {
+    border-color: #8c837b;
+    box-shadow: 0 0 0 0.25rem rgba(140, 131, 123, 0.25);
+}
+
+/* =========================================
+   DASHBOARD COMPRAS
+   ========================================= */
+.metric-card {
+    border-left: 4px solid #8c837b;
+    transition: transform 0.2s;
+}
+.metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+}
+.metric-card-danger {
+    border-left-color: #d9534f;
+}
+
+/* =========================================
+   PANTALLA DE LOGIN
+   ========================================= */
+.login-body {
+    background-color: #ebe8e3;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.login-card {
+    background-color: #f9f8f6;
+    border-radius: 12px;
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.08);
+    border: 1px solid #dcd7d0;
+    width: 100%;
+    max-width: 400px;
+}
+.login-icon {
+    font-size: 3rem;
+    color: #8c837b;
+    margin-bottom: 1rem;
+}
+
+
