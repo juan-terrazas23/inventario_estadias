@@ -7,11 +7,21 @@ body {
 }
 
 /* =========================================
-   BARRA DE NAVEGACIÓN
+   BARRA DE NAVEGACIÓN Y PESTAÑAS
    ========================================= */
 .navbar-custom {
     background-color: #dcd7d0;
     border-bottom: 1px solid #c9c3ba;
+}
+
+/* Forzar el color de las sub-pestañas activas e inactivas */
+#subPestanasReportes .nav-link.active {
+    background-color: #8c837b !important;
+    color: #ffffff !important;
+}
+
+#subPestanasReportes .nav-link {
+    color: #8c837b;
 }
 
 /* =========================================
@@ -89,5 +99,3 @@ body {
     color: #8c837b;
     margin-bottom: 1rem;
 }
-
-

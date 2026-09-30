@@ -28,7 +28,6 @@ const selectNuevaUnidad = document.getElementById('nueva-unidad');
 
 async function cargarCatalogosDinamicos() {
     try {
-        // Cargar Áreas
         const resAreas = await fetch(`${BASE_URL}/areas/get_areas.php`, {
             headers: { 'Authorization': 'Bearer ' + token }
         });
@@ -38,7 +37,6 @@ async function cargarCatalogosDinamicos() {
             areas.forEach(a => selectArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
         }
 
-        // Cargar Unidades
         if (selectNuevaUnidad) {
             const resUnidades = await fetch(`${BASE_URL}/unidades/get_unidades.php`, {
                 headers: { 'Authorization': 'Bearer ' + token }
@@ -50,7 +48,6 @@ async function cargarCatalogosDinamicos() {
             }
         }
 
-        // Cargar Proveedores para las Entradas
         if (inputProveedor) {
             const resProv = await fetch(`${BASE_URL}/proveedores/get_proveedores.php`, {
                 headers: { 'Authorization': 'Bearer ' + token }
@@ -93,7 +90,6 @@ async function cargarInventarioDesdeBD() {
             categoria_id: parseInt(p.categoria_id) 
         })); 
         
-        // ORDENAMIENTO: De menor a mayor ID (ascendente)
         inventarioGlobal.sort((a, b) => parseInt(a.id) - parseInt(b.id));
         
         renderizarCatalogoGeneral();
@@ -462,7 +458,6 @@ function actualizarVistaCarritoEntrada() {
 
 if (btnRegistrarEntrada) {
     btnRegistrarEntrada.addEventListener('click', async () => {
-        // Se eliminó la validación de inputFactura que bloqueaba el código
         if (inputFechaEntrada.value === '' || inputProveedor.value.trim() === '') {
             Swal.fire({ icon: 'info', title: 'Faltan datos', text: 'Por favor completa la Fecha y el Proveedor.', confirmButtonColor: '#8c837b' });
             return;
@@ -487,7 +482,7 @@ if (btnRegistrarEntrada) {
                         cantidad: itemCarrito.cantidad,      
                         persona_responsable: "Encargado Almacén", 
                         proveedor_id: parseInt(inputProveedor.value), 
-                        motivo: `Recepción de proveedor` // Motivo por defecto
+                        motivo: `Recepción de proveedor` 
                     })
                 });
             }
@@ -505,7 +500,6 @@ if (btnRegistrarEntrada) {
             actualizarVistaCarritoEntrada(); 
             inputFechaEntrada.value = '';
             inputProveedor.value = '';
-            // Se eliminó inputFactura.value = '';
             inputDescEntrada.value = '';
             inputCantEntrada.value = '';
             tablaInvEntrada.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">Escribe en "Buscar Insumo a Sumar" para ver coincidencias...</td></tr>`;
@@ -518,11 +512,11 @@ if (btnRegistrarEntrada) {
     });
 }
 
-// --- LÓGICA PARA GESTIÓN DE CATÁLOGO (CON BÚSQUEDA, FILTROS Y CATEGORÍAS) ---
+// --- LÓGICA PARA GESTIÓN DE CATÁLOGO ---
 const inputNuevoId = document.getElementById('nuevo-id');
 const inputNuevaDesc = document.getElementById('nueva-descripcion');
 const inputNuevoStockIni = document.getElementById('nuevo-stock-inicial');
-const inputNuevoStockMin = document.getElementById('nuevo-stock-minimo'); // NUEVO
+const inputNuevoStockMin = document.getElementById('nuevo-stock-minimo');
 const selectNuevaCategoria = document.getElementById('nueva-categoria'); 
 const btnGuardarArticulo = document.getElementById('btn-guardar-articulo');
 const tablaGestionCatalogo = document.getElementById('tabla-gestion-catalogo');
@@ -569,13 +563,11 @@ if(selectFiltroCategoria) selectFiltroCategoria.addEventListener('change', filtr
 
 if (btnGuardarArticulo) {
     btnGuardarArticulo.addEventListener('click', async () => {
-        // Se mantiene el toUpperCase() que agregamos en el paso anterior
         const descripcion = inputNuevaDesc.value.trim().toUpperCase();
         const stock = parseInt(inputNuevoStockIni.value);
-        const stockMinimo = parseInt(inputNuevoStockMin.value); // NUEVO
+        const stockMinimo = parseInt(inputNuevoStockMin.value); 
         const categoriaSeleccionada = selectNuevaCategoria.value;
 
-        // Se agregó la validación del stock_minimo
         if (descripcion === '' || isNaN(stock) || isNaN(stockMinimo) || selectNuevaUnidad.value === '' || categoriaSeleccionada === '') {
             Swal.fire({ icon: 'warning', title: 'Campos incompletos', text: 'Por favor llena la descripción, la categoría, la unidad, el stock inicial y el stock mínimo.', confirmButtonColor: '#8c837b' });
             return;
@@ -592,7 +584,7 @@ if (btnGuardarArticulo) {
                     nombre: descripcion, 
                     precio: 0, 
                     stock: stock, 
-                    stock_minimo: stockMinimo, // NUEVO
+                    stock_minimo: stockMinimo, 
                     categoria_id: parseInt(categoriaSeleccionada),
                     unidad_id: parseInt(selectNuevaUnidad.value) 
                 })
@@ -612,7 +604,7 @@ if (btnGuardarArticulo) {
                 selectNuevaUnidad.value = ''; 
                 selectNuevaCategoria.value = ''; 
                 inputNuevoStockIni.value = '';
-                inputNuevoStockMin.value = ''; // NUEVO Lympiar el campo
+                inputNuevoStockMin.value = ''; 
                 
                 cargarInventarioDesdeBD();
             } else {
@@ -696,7 +688,6 @@ window.modificarItemCarrito = async function(index, tipo) {
     if (nuevaCantidad) {
         const cantidadFinal = parseInt(nuevaCantidad);
         
-        // Si es requisición (salida), validamos que la nueva cantidad no supere el stock real
         if (tipo === 'salida') {
             const articuloBD = inventarioGlobal.find(a => a.id == item.id);
             if (articuloBD && cantidadFinal > articuloBD.stock) {
@@ -705,7 +696,6 @@ window.modificarItemCarrito = async function(index, tipo) {
             }
         }
         
-        // Actualizamos la cantidad y refrescamos la vista
         carrito[index].cantidad = cantidadFinal;
         tipo === 'salida' ? actualizarVistaCarrito() : actualizarVistaCarritoEntrada();
     }
@@ -726,6 +716,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarInventarioDesdeBD();
     cargarCatalogosDinamicos();
     actualizarVistaHistorial(); 
+    
     const btnCerrarSesion = document.getElementById('btn-cerrar-sesion');
     if (btnCerrarSesion) {
         btnCerrarSesion.addEventListener('click', () => {
@@ -746,26 +737,4 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
-
 });
-
-// --- CERRAR SESIÓN (ALMACÉN) ---
-function cerrarSesionAlmacen() {
-    Swal.fire({
-        title: '¿Cerrar sesión?',
-        text: "Saldrás del panel de almacén de forma segura.",
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#d9534f',
-        cancelButtonColor: '#8c837b',
-        confirmButtonText: 'Sí, salir',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Borramos el token de seguridad
-            localStorage.removeItem('token');
-            // Redirigimos al login
-            window.location.href = 'index.php';
-        }
-    });
-}
