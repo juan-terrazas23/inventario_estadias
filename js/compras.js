@@ -79,9 +79,13 @@ async function cargarDatosCompras() {
                     document.getElementById('val-area-consumo').textContent = "Sin registros";
                     document.getElementById('val-porcentaje-consumo').textContent = "0% del consumo total";
                 }
+            } else {
+                throw new Error("Respuesta no OK");
             }
         } catch (e) {
-            document.getElementById('val-area-consumo').textContent = "Sin datos";
+            // CORRECCIÓN: Evitamos que se quede "Calculando..."
+            document.getElementById('val-area-consumo').textContent = "Error de cálculo";
+            document.getElementById('val-porcentaje-consumo').textContent = "Verifica los datos en BD";
         }
 
         // 3. Cargar Análisis de Tiempos y Costos (Rotación)
@@ -106,10 +110,11 @@ async function cargarDatosCompras() {
                         </tr>`).join('');
                 }
             } else {
-                tbodyRotacion.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Registra más salidas para generar la estimación.</td></tr>`;
+                throw new Error("Respuesta no OK");
             }
         } catch (e) {
-            document.getElementById('tbody-rotacion').innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">Error al conectar con la estimación.</td></tr>`;
+            // CORRECCIÓN: Avisamos visualmente en lugar de congelar la tabla
+            document.getElementById('tbody-rotacion').innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4"><i class="bi bi-exclamation-triangle"></i> Error al calcular estimaciones. Posible división por cero.</td></tr>`;
         }
 
         // 4. Cargar Estadísticas Gerenciales (Top Productos y Áreas)
@@ -371,31 +376,121 @@ document.getElementById('btn-nuevo-empleado').addEventListener('click', () => {
     });
 });
 
-document.getElementById('btn-exportar').addEventListener('click', function () {
+// --- 1. EXPORTAR ALERTAS A PDF ---
+document.getElementById('btn-exportar')?.addEventListener('click', function () {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const fechaHoy = new Date().toLocaleDateString('es-MX');
-    doc.setFontSize(16); doc.text("Reporte de Alertas de Reabastecimiento", 14, 20);
-    doc.setFontSize(10); doc.setTextColor(100); doc.text(`Fecha de emisión: ${fechaHoy}`, 14, 28);
-    doc.autoTable({ html: '#tabla-faltantes', startY: 35, theme: 'grid', headStyles: { fillColor: [140, 131, 123], textColor: 255 }, styles: { fontSize: 9, halign: 'center' }, columnStyles: { 1: { halign: 'left', cellWidth: 80 } } });
+
+    doc.setFontSize(16);
+    doc.setTextColor(40, 40, 40);
+    doc.text("H. Congreso del Estado de Durango", 14, 15);
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text("Reporte Oficial de Alertas de Reabastecimiento", 14, 23);
+    doc.setFontSize(9);
+    doc.text(`Fecha de emisión: ${fechaHoy}`, 14, 29);
+
+    doc.autoTable({
+        html: '#tabla-faltantes',
+        startY: 35,
+        theme: 'grid',
+        headStyles: { fillColor: [140, 131, 123], textColor: 255, fontStyle: 'bold' },
+        styles: { fontSize: 9, valign: 'middle' }
+    });
+
     doc.save('Reporte_Faltantes_Inventario.pdf');
 });
 
-document.getElementById('btn-exportar-csv').addEventListener('click', async () => {
-    try {
-        const respuesta = await fetch('backend/movimientos/exportar_movimientos.php', { method: 'GET', headers: { 'Authorization': 'Bearer ' + token } });
-        if (respuesta.ok) {
-            const blob = await respuesta.blob(); const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = 'historial_movimientos_congreso.csv';
-            document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
-        } else { Swal.fire({ icon: 'error', title: 'Acceso Denegado', text: 'No tienes permisos.' }); }
-    } catch (error) { Swal.fire({ icon: 'error', title: 'Error de conexión' }); }
+// --- 2. EXPORTAR ALERTAS A EXCEL (CSV sin alertas de seguridad) ---
+document.getElementById('btn-exportar-csv-alertas')?.addEventListener('click', function () {
+    let tabla = document.getElementById('tabla-faltantes');
+    let filas = tabla.querySelectorAll('tr');
+    let csv = [];
+
+    filas.forEach(fila => {
+        let cols = fila.querySelectorAll('th, td');
+        let datosFila = [];
+        cols.forEach(col => {
+            // Limpiamos el texto de saltos de línea ocultos y comillas que rompen el Excel
+            let texto = col.innerText.replace(/"/g, '""').replace(/\n/g, ' ').trim();
+            datosFila.push(`"${texto}"`);
+        });
+        csv.push(datosFila.join(','));
+    });
+
+    // '\uFEFF' es la firma UTF-8 que Excel necesita para no romper los acentos.
+    // '\r\n' asegura que Windows lea las filas correctamente.
+    let csvContent = '\uFEFF' + csv.join('\r\n');
+    let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    let url = window.URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.href = url;
+    // Usamos extensión .csv real para que no salte el firewall ni la alerta de Excel
+    a.download = 'Reporte_Alertas_Reabastecimiento.csv';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    
+    // Limpieza de memoria
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
 });
 
-// --- HISTORIAL DE MOVIMIENTOS ---
+// --- 3. EXPORTAR HISTORIAL A PDF (Apunta directamente a la tabla corregida) ---
+document.getElementById('btn-exportar-pdf-historial')?.addEventListener('click', function () {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('landscape'); 
+    const fechaHoy = new Date().toLocaleDateString('es-MX');
+
+    doc.setFontSize(16);
+    doc.text("H. Congreso del Estado de Durango", 14, 15);
+    doc.setFontSize(12);
+    doc.text("Historial Detallado de Movimientos", 14, 23);
+    doc.setFontSize(9);
+    doc.text(`Fecha de emisión: ${fechaHoy}`, 14, 29);
+
+    doc.autoTable({
+        html: '#tabla-historial-pdf', // Este ID debe coincidir con el que pusimos en el HTML
+        startY: 35,
+        theme: 'grid',
+        headStyles: { fillColor: [140, 131, 123], textColor: 255 },
+        styles: { fontSize: 8, valign: 'middle' }
+    });
+
+    doc.save('Historial_Movimientos_Congreso.pdf');
+});
+
+// --- 4. EXPORTAR HISTORIAL A CSV (Desde el Backend) ---
+document.getElementById('btn-exportar-csv')?.addEventListener('click', async () => {
+    try {
+        const respuesta = await fetch('backend/movimientos/exportar_movimientos.php', { 
+            method: 'GET', 
+            headers: { 'Authorization': 'Bearer ' + token } 
+        });
+
+        if (respuesta.ok) {
+            const blob = await respuesta.blob(); 
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a'); 
+            a.href = url; 
+            a.download = `historial_movimientos_congreso_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a); 
+            a.click(); 
+            a.remove(); 
+            window.URL.revokeObjectURL(url);
+        } else { 
+            Swal.fire({ icon: 'error', title: 'Acceso Denegado' }); 
+        }
+    } catch (error) { 
+        Swal.fire({ icon: 'error', title: 'Error de conexión' }); 
+    }
+});
+// --- HISTORIAL DE MOVIMIENTOS (AGRUPADO PARA COMPRAS) ---
 async function cargarHistorialCompras() {
     try {
-        const respuesta = await fetch(`${BASE_URL}/movimientos/get_movimientos.php?limite=30`, {
+        const respuesta = await fetch(`${BASE_URL}/movimientos/get_movimientos.php?limite=100`, {
             method: 'GET',
             headers: { 'Authorization': 'Bearer ' + token }
         });
@@ -410,30 +505,55 @@ async function cargarHistorialCompras() {
                 return;
             }
 
-            tbody.innerHTML = movimientos.map(m => {
+            // Algoritmo de agrupación
+            const movimientosAgrupados = {};
+
+            movimientos.forEach(m => {
                 let partesFecha = m.fecha ? m.fecha.split(' ') : ['', ''];
                 let fechaDia = partesFecha[0] || '';
                 let horaMin = partesFecha[1] ? partesFecha[1].substring(0, 5) : '';
+                
+                let llaveRequisicion = `${fechaDia}_${horaMin}_${m.persona_responsable}_${m.tipo}`;
 
-                let tipoBadge = m.tipo.toLowerCase() === 'entrada'
+                if (!movimientosAgrupados[llaveRequisicion]) {
+                    movimientosAgrupados[llaveRequisicion] = {
+                        fechaDia: fechaDia,
+                        horaMin: horaMin,
+                        tipo: m.tipo,
+                        responsable: m.persona_responsable,
+                        destinoOProcedencia: m.area ? `Área: ${m.area}` : (m.proveedor ? `Prov: ${m.proveedor}` : 'N/A'),
+                        motivo: m.motivo,
+                        insumos: [] 
+                    };
+                }
+                movimientosAgrupados[llaveRequisicion].insumos.push(`<b>${m.cantidad}x</b> ${m.producto}`);
+            });
+
+            // Dibujar la tabla
+            tbody.innerHTML = Object.values(movimientosAgrupados).map(grupo => {
+                let tipoBadge = grupo.tipo.toLowerCase() === 'entrada'
                     ? '<span class="badge bg-success">Entrada</span>'
                     : '<span class="badge bg-secondary">Salida</span>';
 
-                let destinoOProcedencia = m.area ? `Área: ${m.area}` : (m.proveedor ? `Prov: ${m.proveedor}` : 'N/A');
+                let listaInsumosHTML = grupo.insumos.map(ins => 
+                    `<span class="d-block border-bottom border-light pb-1 mb-1" style="font-size: 0.9rem;">
+                        <i class="bi bi-caret-right text-muted"></i> ${ins}
+                     </span>`
+                ).join('');
 
                 return `
                     <tr>
-                        <td class="ps-3">
-                            <span class="fw-bold d-block text-dark">${horaMin}</span>
-                            <small class="text-muted">${fechaDia}</small>
+                        <td class="ps-3 align-top">
+                            <span class="fw-bold d-block text-dark">${grupo.horaMin}</span>
+                            <small class="text-muted">${grupo.fechaDia}</small>
                         </td>
-                        <td>${tipoBadge}</td>
-                        <td>
-                            <span class="fw-medium text-dark">${m.producto}</span>
-                            <small class="text-muted d-block">Cant: <b>${m.cantidad}</b> | ${destinoOProcedencia}</small>
+                        <td class="align-top">${tipoBadge}</td>
+                        <td class="align-top">
+                            <small class="text-muted d-block mb-2">${grupo.destinoOProcedencia}</small>
+                            <div class="bg-light p-2 rounded">${listaInsumosHTML}</div>
                         </td>
-                        <td><span class="text-secondary">${m.persona_responsable || 'N/A'}</span></td>
-                        <td class="text-center"><small class="text-muted">${m.motivo || 'Sin motivo'}</small></td>
+                        <td class="align-top"><span class="text-secondary fw-medium">${grupo.responsable || 'N/A'}</span></td>
+                        <td class="text-center align-top"><small class="text-muted">${grupo.motivo || 'Sin motivo'}</small></td>
                     </tr>
                 `;
             }).join('');
@@ -444,11 +564,120 @@ async function cargarHistorialCompras() {
     }
 }
 
+// --- GESTIÓN DE ÁREAS / DEPARTAMENTOS ---
+let listaAreasGlobal = [];
+
+async function cargarAreas() {
+    try {
+        const res = await fetch(`${BASE_URL}/areas/get_areas.php`, { headers: { 'Authorization': 'Bearer ' + token } });
+        if (res.ok) {
+            listaAreasGlobal = await res.json();
+            renderizarAreas(listaAreasGlobal);
+        } else {
+            document.getElementById('tbody-areas').innerHTML = '<tr><td colspan="3" class="text-center text-danger py-4">Error al obtener áreas.</td></tr>';
+        }
+    } catch (error) { console.error("Error cargando áreas:", error); }
+}
+
+function renderizarAreas(areas) {
+    const tbody = document.getElementById('tbody-areas');
+    if (areas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">No se encontraron áreas registradas.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = areas.map(a => `
+        <tr>
+            <td class="ps-3 text-muted">${a.id}</td>
+            <td class="fw-bold text-dark">${a.nombre}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-secondary me-1" onclick="editarArea(${a.id}, '${a.nombre}')" title="Modificar Nombre"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="eliminarArea(${a.id})" title="Dar de baja"><i class="bi bi-trash"></i></button>
+            </td>
+        </tr>`).join('');
+}
+
+// Botón: Nueva Área
+const btnNuevaArea = document.getElementById('btn-nueva-area');
+if (btnNuevaArea) {
+    btnNuevaArea.addEventListener('click', () => {
+        Swal.fire({
+            title: 'Registrar Nueva Área',
+            html: `<input id="swal-nombre-area" class="swal2-input" placeholder="Ej. CENTRO DE COPIADO">`,
+            confirmButtonText: 'Guardar Área', confirmButtonColor: '#8c837b', focusConfirm: false,
+            preConfirm: () => { return { nombre: document.getElementById('swal-nombre-area').value.trim().toUpperCase() } }
+        }).then(async (result) => {
+            if (result.isConfirmed && result.value.nombre !== '') {
+                try {
+                    const res = await fetch(`${BASE_URL}/areas/post_area.php`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify(result.value) });
+                    if (res.ok) { Swal.fire('¡Registrado!', 'El área se guardó con éxito.', 'success'); cargarAreas(); }
+                    else { Swal.fire('Error', 'No se pudo registrar el área.', 'error'); }
+                } catch (e) { console.error(e); }
+            }
+        });
+    });
+}
+
+// Modificar Área
+window.editarArea = function (id, nombre) {
+    Swal.fire({
+        title: 'Modificar Área',
+        html: `<input id="swal-edit-area" class="swal2-input" value="${nombre}" placeholder="Nombre del Área">`,
+        confirmButtonText: 'Guardar Cambios', confirmButtonColor: '#8c837b', focusConfirm: false,
+        preConfirm: () => { return { id: id, nombre: document.getElementById('swal-edit-area').value.trim().toUpperCase() } }
+    }).then(async (result) => {
+        if (result.isConfirmed && result.value.nombre !== '') {
+            try {
+                const res = await fetch(`${BASE_URL}/areas/put_area.php`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify(result.value) });
+                if (res.ok) { Swal.fire('¡Actualizado!', 'El nombre se actualizó con éxito.', 'success'); cargarAreas(); }
+                else { Swal.fire('Error', 'No se pudo actualizar.', 'error'); }
+            } catch (e) { console.error(e); }
+        }
+    });
+};
+
+// Eliminar Área
+window.eliminarArea = async function (id) {
+    const confirmacion = await Swal.fire({ title: '¿Dar de baja esta área?', text: "Ya no aparecerá en el almacén para hacerle entregas.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d9534f', cancelButtonColor: '#8c837b', confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar' });
+    if (confirmacion.isConfirmed) {
+        try {
+            const res = await fetch(`${BASE_URL}/areas/delete_area.php?id=${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+            if (res.ok) { await Swal.fire({ icon: 'success', title: 'Eliminada', timer: 1500, showConfirmButton: false }); cargarAreas(); }
+            else { Swal.fire('Error', 'No se pudo eliminar el área. Es probable que tenga movimientos en el historial.', 'error'); }
+        } catch (error) { console.error(error); }
+    }
+};
+
+// Buscador en tiempo real
+const inputBuscarArea = document.getElementById('input-buscar-area');
+if (inputBuscarArea) {
+    inputBuscarArea.addEventListener('input', (e) => {
+        const texto = e.target.value.toLowerCase();
+        renderizarAreas(listaAreasGlobal.filter(a => a.nombre.toLowerCase().includes(texto)));
+    });
+}
+
+// --- FILTRO REACTIVO PARA EL HISTORIAL DE COMPRAS ---
 document.addEventListener('DOMContentLoaded', () => {
+    // Tus llamadas iniciales existentes...
     cargarDatosCompras();
     cargarProveedores();
     cargarEmpleados();
     cargarHistorialCompras(); 
+    cargarAreas();
+
+    // NUEVO: Lógica del buscador
+    const inputBuscarHistorialCompras = document.getElementById('input-buscar-historial-compras');
+    if (inputBuscarHistorialCompras) {
+        inputBuscarHistorialCompras.addEventListener('input', function() {
+            const texto = this.value.toLowerCase();
+            const filas = document.querySelectorAll('#tbody-historial-compras tr'); 
+
+            filas.forEach(fila => {
+                const contenido = fila.textContent.toLowerCase();
+                fila.style.display = contenido.includes(texto) ? '' : 'none';
+            });
+        });
+    }
 });
 
 // --- CERRAR SESIÓN ---

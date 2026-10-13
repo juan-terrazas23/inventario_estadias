@@ -62,6 +62,13 @@
                     <i class="bi bi-people me-2"></i>Gestión de Empleados
                 </button>
             </li>
+            <!-- NUEVA PESTAÑA: Gestión de Áreas -->
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold text-dark" id="tab-areas" data-bs-toggle="tab"
+                    data-bs-target="#seccion-areas" type="button" role="tab">
+                    <i class="bi bi-building me-2"></i>Gestión de Áreas
+                </button>
+            </li>
         </ul>
     </div>
 
@@ -131,8 +138,13 @@
                             class="card-header card-header-custom d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
                             <span><i class="bi bi-cart-x me-2"></i>Alertas de Reabastecimiento</span>
                             <div class="d-flex gap-2">
+                                <!-- Botón PDF existente -->
                                 <button id="btn-exportar" class="btn btn-sm btn-outline-secondary">
                                     <i class="bi bi-file-earmark-pdf me-1"></i>Exportar a PDF
+                                </button>
+                                <!-- NUEVO: Botón Excel para Alertas -->
+                                <button id="btn-exportar-csv-alertas" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-file-earmark-excel me-1"></i>Exportar a Excel
                                 </button>
                             </div>
                         </div>
@@ -317,6 +329,41 @@
                 </div>
             </div>
         </div>
+        <!-- PESTAÑA 4: Gestión de Áreas -->
+        <div class="tab-pane fade container mt-4" id="seccion-areas" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
+                <input type="text" id="input-buscar-area" class="form-control w-100"
+                    placeholder="Buscar departamento o área por nombre...">
+                <button id="btn-nueva-area" class="btn text-white text-nowrap shadow-sm"
+                    style="background-color: #8c837b; border: none;">
+                    <i class="bi bi-plus-circle me-1"></i>Nueva Área
+                </button>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header card-header-custom">
+                    <i class="bi bi-building me-2"></i>Listado de Áreas y Departamentos
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-header-custom" style="position: sticky; top: 0; z-index: 1;">
+                                <tr>
+                                    <th class="ps-3" style="width: 10%;">ID</th>
+                                    <th>Nombre del Departamento / Área</th>
+                                    <th class="text-center" style="width: 20%;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-areas">
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">Cargando áreas...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -332,8 +379,15 @@
                 </div>
 
                 <div class="modal-body p-0">
+                    <!-- Barra de búsqueda reactiva -->
+                    <div class="p-3 bg-white border-bottom position-sticky top-0" style="z-index: 2;">
+                        <input type="text" id="input-buscar-historial-compras" class="form-control"
+                            placeholder="Buscar por área, insumo, responsable o fecha...">
+                    </div>
+
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
+                        <!-- Solo debe haber UNA tabla aquí -->
+                        <table class="table table-hover align-middle mb-0" id="tabla-historial-pdf">
                             <thead class="table-header-custom" style="position: sticky; top: 0; z-index: 1;">
                                 <tr>
                                     <th class="ps-3">Fecha/Hora</th>
@@ -353,9 +407,13 @@
                 </div>
 
                 <div class="modal-footer" style="background-color: #f8f9fa;">
-                    <!-- Botón de Excel integrado en el pie del modal -->
+                    <!-- NUEVO: Botón de PDF para el Historial -->
+                    <button id="btn-exportar-pdf-historial" class="btn btn-outline-secondary">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>Exportar Historial a PDF
+                    </button>
+                    <!-- Botón Excel existente -->
                     <button id="btn-exportar-csv" class="btn btn-outline-success">
-                        <i class="bi bi-file-earmark-excel me-1"></i>Exportar a CSV
+                        <i class="bi bi-file-earmark-excel me-1"></i>Exportar a Excel (CSV)
                     </button>
                 </div>
             </div>
@@ -370,7 +428,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- NUEVO: Conexión limpia a la lógica de JavaScript -->
-    <script src="js/compras.js?v=2"></script>
+    <script src="js/compras.js?v=8"></script>
 </body>
 
 </html>

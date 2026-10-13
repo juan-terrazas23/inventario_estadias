@@ -7,6 +7,10 @@
     <title>Panel de Almacén - Inventario</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <!-- NUEVO: Estilos del Buscador Tom Select (Versión especial para Bootstrap 5) -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+
     <link rel="stylesheet" href="css/estilos.css">
 
     <script>
@@ -32,7 +36,7 @@
                 <span class="navbar-text text-dark border-start ps-3 pe-2">
                     Perfil: Almacenista
                 </span>
-                <!-- NUEVO: Botón de Cerrar Sesión -->
+                <!-- Botón de Cerrar Sesión -->
                 <button id="btn-cerrar-sesion" class="btn btn-sm btn-outline-danger shadow-sm" title="Cerrar Sesión">
                     <i class="bi bi-box-arrow-right me-1"></i> Salir
                 </button>
@@ -81,7 +85,7 @@
                                 <div class="mb-3">
                                     <label for="area" class="form-label">Área Solicitante</label>
                                     <!-- Las áreas se cargarán dinámicamente desde el JS -->
-                                    <select class="form-select" id="area">
+                                    <select class="form-select" id="area" placeholder="Escribe para buscar un área...">
                                         <option value="">Cargando áreas...</option>
                                     </select>
                                 </div>
@@ -178,7 +182,8 @@
                                 <div class="mb-3">
                                     <label for="proveedor" class="form-label">Proveedor</label>
                                     <!-- Se cambia el input text por un select dinámico -->
-                                    <select class="form-select" id="proveedor">
+                                    <select class="form-select" id="proveedor"
+                                        placeholder="Escribe para buscar proveedor...">
                                         <option value="">Cargando proveedores...</option>
                                     </select>
                                 </div>
@@ -361,7 +366,13 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-0">
-                    <!-- Busca esto en tu almacenista.php dentro del modalHistorial -->
+                    <!-- NUEVO: Barra de búsqueda reactiva -->
+                    <div class="p-3 bg-white border-bottom position-sticky top-0" style="z-index: 2;">
+                        <input type="text" id="input-buscar-historial" class="form-control"
+                            placeholder="Buscar por área, insumo, responsable o fecha...">
+                    </div>
+
+                    <!-- Tu tabla intacta -->
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-header-custom" style="position: sticky; top: 0; z-index: 1;">
                             <tr>
@@ -386,7 +397,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="js/almacen.js?v=4"></script>
+    <!-- NUEVO: Script de Tom Select -->
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+    <script src="js/almacen.js?v=7"></script>
 </body>
 
 </html>

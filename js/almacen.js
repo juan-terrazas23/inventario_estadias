@@ -14,6 +14,10 @@ let historialEntregas = [];
 let carritoEntradas = [];
 let articuloTemporalEntrada = null;
 
+// NUEVO: Variables globales para guardar las instancias de los buscadores visuales
+let tomSelectArea = null;
+let tomSelectProveedor = null;
+
 const inputDescripcion = document.getElementById('descripcion');
 const inputCantidad = document.getElementById('cantidad');
 const tablaInventario = document.getElementById('tabla-inventario');
@@ -35,6 +39,19 @@ async function cargarCatalogosDinamicos() {
             const areas = await resAreas.json();
             selectArea.innerHTML = '<option value="">Selecciona un área...</option>';
             areas.forEach(a => selectArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
+            
+            if (tomSelectArea) tomSelectArea.destroy();
+            tomSelectArea = new TomSelect(selectArea, {
+                create: false,
+                highlight: false, 
+                sortField: { field: "text", direction: "asc" },
+                // NUEVO: Traducción del mensaje cuando no hay coincidencias
+                render: {
+                    no_results: function(data, escape) {
+                        return '<div class="no-results" style="padding: 8px 12px;">No se encontraron resultados</div>';
+                    }
+                }
+            });
         }
 
         if (selectNuevaUnidad) {
@@ -56,6 +73,19 @@ async function cargarCatalogosDinamicos() {
                 const proveedores = await resProv.json();
                 inputProveedor.innerHTML = '<option value="">Selecciona un proveedor...</option>';
                 proveedores.forEach(p => inputProveedor.innerHTML += `<option value="${p.id}">${p.empresa}</option>`);
+                
+                if (tomSelectProveedor) tomSelectProveedor.destroy();
+                tomSelectProveedor = new TomSelect(inputProveedor, {
+                    create: false,
+                    highlight: false, 
+                    sortField: { field: "text", direction: "asc" },
+                    // NUEVO: Traducción del mensaje cuando no hay coincidencias
+                    render: {
+                        no_results: function(data, escape) {
+                            return '<div class="no-results" style="padding: 8px 12px;">No se encontraron resultados</div>';
+                        }
+                    }
+                });
             }
         }
     } catch (error) {
@@ -165,11 +195,18 @@ btnAgregar.addEventListener('click', () => {
         return;
     }
 
-    carritoRequisicion.push({
-        id: articuloTemporal.id,
-        descripcion: articuloTemporal.descripcion,
-        cantidad: cantidad
-    });
+    // BUSCAR SI YA EXISTE EN EL CARRITO DE SALIDAS
+    const itemExistente = carritoRequisicion.find(item => item.id === articuloTemporal.id);
+    
+    if (itemExistente) {
+        itemExistente.cantidad += cantidad; // Solo suma la cantidad
+    } else {
+        carritoRequisicion.push({
+            id: articuloTemporal.id,
+            descripcion: articuloTemporal.descripcion,
+            cantidad: cantidad
+        });
+    }
 
     articuloTemporal = null;
     inputDescripcion.value = '';
@@ -273,7 +310,14 @@ btnRegistrar.addEventListener('click', async () => {
         carritoRequisicion = []; 
         actualizarVistaCarrito(); 
         inputFecha.value = '';
-        selectArea.value = '';
+        
+        // NUEVO: Limpieza visual segura para el buscador de área
+        if (tomSelectArea) {
+            tomSelectArea.clear();
+        } else {
+            selectArea.value = '';
+        }
+        
         inputPersonaResponsable.value = ''; 
         inputDescripcion.value = '';
         inputCantidad.value = '';
@@ -291,13 +335,13 @@ btnRegistrar.addEventListener('click', async () => {
     }
 });
 
-// --- HISTORIAL PERMANENTE CONECTADO A LA BASE DE DATOS ---
+// --- HISTORIAL PERMANENTE CONECTADO A LA BASE DE DATOS (AGRUPADO) ---
 async function actualizarVistaHistorial() {
     const tablaHistorial = document.getElementById('tabla-historial');
     if (!tablaHistorial) return;
 
     try {
-        const respuesta = await fetch(`${BASE_URL}/movimientos/get_movimientos.php?limite=50`, {
+        const respuesta = await fetch(`${BASE_URL}/movimientos/get_movimientos.php?limite=100`, {
             method: 'GET',
             headers: { 'Authorization': 'Bearer ' + token }
         });
@@ -313,30 +357,61 @@ async function actualizarVistaHistorial() {
                 return;
             }
 
+            // NUEVO: Algoritmo para agrupar por Requisición (Fecha + Hora + Responsable)
+            const movimientosAgrupados = {};
+
             movimientos.forEach(m => {
                 let partesFecha = m.fecha ? m.fecha.split(' ') : ['', ''];
                 let fechaDia = partesFecha[0] || '';
                 let horaMin = partesFecha[1] ? partesFecha[1].substring(0, 5) : '';
+                
+                // Creamos una "llave" única para juntar todo lo de ese mismo momento y persona
+                let llaveRequisicion = `${fechaDia}_${horaMin}_${m.persona_responsable}_${m.tipo}`;
 
-                let tipoBadge = m.tipo.toLowerCase() === 'entrada' 
+                if (!movimientosAgrupados[llaveRequisicion]) {
+                    movimientosAgrupados[llaveRequisicion] = {
+                        fechaDia: fechaDia,
+                        horaMin: horaMin,
+                        tipo: m.tipo,
+                        responsable: m.persona_responsable,
+                        destinoOProcedencia: m.area ? `Área: ${m.area}` : (m.proveedor ? `Prov: ${m.proveedor}` : 'N/A'),
+                        motivo: m.motivo,
+                        insumos: [] // Aquí meteremos la lista de lo que se llevó
+                    };
+                }
+                
+                // Agregamos el insumo a la lista de esta requisición
+                movimientosAgrupados[llaveRequisicion].insumos.push(`<b>${m.cantidad}x</b> ${m.producto}`);
+            });
+
+            // Ahora dibujamos la tabla usando los grupos ya armados
+            Object.values(movimientosAgrupados).forEach(grupo => {
+                let tipoBadge = grupo.tipo.toLowerCase() === 'entrada' 
                     ? '<span class="badge bg-success">Entrada</span>' 
                     : '<span class="badge bg-secondary">Salida</span>';
 
-                let destinoOProcedencia = m.area ? `Área: ${m.area}` : (m.proveedor ? `Prov: ${m.proveedor}` : 'N/A');
+                // Formateamos la lista de insumos para que se vea elegante dentro de la celda
+                let listaInsumosHTML = grupo.insumos.map(ins => 
+                    `<span class="d-block border-bottom border-light pb-1 mb-1" style="font-size: 0.9rem;">
+                        <i class="bi bi-caret-right text-muted"></i> ${ins}
+                     </span>`
+                ).join('');
 
                 tablaHistorial.innerHTML += `
                     <tr>
-                        <td class="ps-3">
-                            <span class="fw-bold d-block text-dark">${horaMin}</span>
-                            <small class="text-muted">${fechaDia}</small>
+                        <td class="ps-3 align-top">
+                            <span class="fw-bold d-block text-dark">${grupo.horaMin}</span>
+                            <small class="text-muted">${grupo.fechaDia}</small>
                         </td>
-                        <td>${tipoBadge}</td>
-                        <td>
-                            <span class="fw-medium text-dark">${m.producto}</span>
-                            <small class="text-muted d-block">Cant: <b>${m.cantidad}</b> | ${destinoOProcedencia}</small>
+                        <td class="align-top">${tipoBadge}</td>
+                        <td class="align-top">
+                            <small class="text-muted d-block mb-2">${grupo.destinoOProcedencia}</small>
+                            <div class="bg-light p-2 rounded">
+                                ${listaInsumosHTML}
+                            </div>
                         </td>
-                        <td><span class="text-secondary">${m.persona_responsable || 'N/A'}</span></td>
-                        <td class="text-center"><small class="text-muted">${m.motivo || 'Sin motivo'}</small></td>
+                        <td class="align-top"><span class="text-secondary fw-medium">${grupo.responsable || 'N/A'}</span></td>
+                        <td class="text-center align-top"><small class="text-muted">${grupo.motivo || 'Sin motivo'}</small></td>
                     </tr>
                 `;
             });
@@ -415,11 +490,18 @@ if (btnAgregarEntrada) {
             return;
         }
 
-        carritoEntradas.push({
-            id: articuloTemporalEntrada.id,
-            descripcion: articuloTemporalEntrada.descripcion,
-            cantidad: cantidad
-        });
+        // BUSCAR SI YA EXISTE EN EL CARRITO DE ENTRADAS
+        const itemExistente = carritoEntradas.find(item => item.id === articuloTemporalEntrada.id);
+        
+        if (itemExistente) {
+            itemExistente.cantidad += cantidad;
+        } else {
+            carritoEntradas.push({
+                id: articuloTemporalEntrada.id,
+                descripcion: articuloTemporalEntrada.descripcion,
+                cantidad: cantidad
+            });
+        }
 
         articuloTemporalEntrada = null;
         inputDescEntrada.value = '';
@@ -480,7 +562,7 @@ if (btnRegistrarEntrada) {
                         producto_id: itemCarrito.id,         
                         tipo: 'entrada',                     
                         cantidad: itemCarrito.cantidad,      
-                        persona_responsable: "Encargado Almacén", 
+                        persona_responsable: localStorage.getItem('nombre_usuario') || "Almacenista", 
                         proveedor_id: parseInt(inputProveedor.value), 
                         motivo: `Recepción de proveedor` 
                     })
@@ -499,7 +581,14 @@ if (btnRegistrarEntrada) {
             carritoEntradas = []; 
             actualizarVistaCarritoEntrada(); 
             inputFechaEntrada.value = '';
-            inputProveedor.value = '';
+            
+            // NUEVO: Limpieza visual segura para el buscador de proveedor
+            if (tomSelectProveedor) {
+                tomSelectProveedor.clear();
+            } else {
+                inputProveedor.value = '';
+            }
+            
             inputDescEntrada.value = '';
             inputCantEntrada.value = '';
             tablaInvEntrada.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">Escribe en "Buscar Insumo a Sumar" para ver coincidencias...</td></tr>`;
@@ -717,6 +806,20 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarCatalogosDinamicos();
     actualizarVistaHistorial(); 
     
+    // --- FILTRO REACTIVO PARA EL HISTORIAL ---
+    const inputBuscarHistorial = document.getElementById('input-buscar-historial');
+    if (inputBuscarHistorial) {
+        inputBuscarHistorial.addEventListener('input', function() {
+            const texto = this.value.toLowerCase();
+            const filas = document.querySelectorAll('#tabla-historial tr'); 
+
+            filas.forEach(fila => {
+                const contenido = fila.textContent.toLowerCase();
+                fila.style.display = contenido.includes(texto) ? '' : 'none';
+            });
+        });
+    }
+    
     const btnCerrarSesion = document.getElementById('btn-cerrar-sesion');
     if (btnCerrarSesion) {
         btnCerrarSesion.addEventListener('click', () => {
@@ -738,3 +841,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+

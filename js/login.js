@@ -47,11 +47,15 @@ async function simularLogin() {
         if (respuesta.ok) {
             localStorage.setItem('token', resultado.token);
             const rol = resultado.usuario.rol;
+            
+            localStorage.setItem('rol_usuario', rol);
+            localStorage.setItem('nombre_usuario', nombreUsuario);
 
             Swal.fire({
                 icon: 'success',
                 title: '¡Bienvenido!',
-                text: resultado.mensaje,
+                // AQUÍ ES DONDE PONEMOS EL SALUDO PERSONALIZADO:
+                text: `Hola, ${nombreUsuario}`, 
                 confirmButtonColor: '#8c837b',
                 timer: 1500,
                 showConfirmButton: false
@@ -64,7 +68,7 @@ async function simularLogin() {
                     window.location.href = 'index.php';
                 }
             });
-        } else {
+        }else {
             Swal.fire({
                 icon: 'error',
                 title: 'Acceso Denegado',
