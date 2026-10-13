@@ -19,12 +19,15 @@ try {
     // Calcular el total de páginas (redondeando hacia arriba)
     $totalPaginas = ceil($totalRegistros / $limite);
 
-    // 3. --- EL CAMBIO MAESTRO: LEFT JOIN PARA ÁREAS Y PROVEEDORES ---
-    $query = "SELECT m.id, p.nombre as producto, a.nombre as area, pr.empresa as proveedor, m.tipo, m.cantidad, m.fecha, m.motivo, m.persona_responsable
+   // 3. --- EL CAMBIO MAESTRO: LEFT JOIN PARA ÁREAS, PROVEEDORES Y AHORA USUARIOS ---
+    $query = "SELECT m.id, p.nombre as producto, a.nombre as area, pr.empresa as proveedor, 
+                     m.tipo, m.cantidad, m.fecha, m.motivo, m.persona_responsable, 
+                     u.nombre as usuario_sistema 
               FROM movimientos m 
               INNER JOIN productos p ON m.producto_id = p.id 
               LEFT JOIN areas a ON m.area_id = a.id
               LEFT JOIN proveedores pr ON m.proveedor_id = pr.id
+              LEFT JOIN usuarios u ON m.id_usuario_despacha = u.id
               ORDER BY m.fecha DESC 
               LIMIT :limite OFFSET :offset";
               

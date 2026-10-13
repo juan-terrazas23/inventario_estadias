@@ -72,9 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmtUpdate->bindParam(":producto_id", $producto_id, PDO::PARAM_INT);
             $stmtUpdate->execute();
 
-            // 4. Registrar el movimiento en el historial inalterable con la persona responsable
-            $queryMovimiento = "INSERT INTO movimientos (producto_id, tipo, cantidad, area_id, proveedor_id, persona_responsable, motivo, fecha) 
-                                VALUES (:producto_id, :tipo, :cantidad, :area_id, :proveedor_id, :persona_responsable, :motivo, NOW())";
+            // 4. Registrar el movimiento en el historial inalterable
+            // ¡NUEVO! Obtenemos el ID del almacenista directamente del token de seguridad (BackEnd)
+            $id_usuario_despacha = $usuario_auth['id'];
+
+            // Agregamos id_usuario_despacha al INSERT
+            $queryMovimiento = "INSERT INTO movimientos (producto_id, tipo, cantidad, area_id, proveedor_id, persona_responsable, motivo, fecha, id_usuario_despacha) 
+                                VALUES (:producto_id, :tipo, :cantidad, :area_id, :proveedor_id, :persona_responsable, :motivo, NOW(), :id_usuario_despacha)";
             
             $stmtMovimiento = $conexion->prepare($queryMovimiento);
             $stmtMovimiento->bindParam(":producto_id", $producto_id, PDO::PARAM_INT);
@@ -84,6 +88,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmtMovimiento->bindParam(":proveedor_id", $proveedor_id, PDO::PARAM_INT);
             $stmtMovimiento->bindParam(":persona_responsable", $persona_responsable);
             $stmtMovimiento->bindParam(":motivo", $motivo);
+            // ¡NUEVO! Vinculamos el ID del almacenista
+            $stmtMovimiento->bindParam(":id_usuario_despacha", $id_usuario_despacha, PDO::PARAM_INT);
+            
             $stmtMovimiento->execute();
 
             // Confirmar transacción exitosa

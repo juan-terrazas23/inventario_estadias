@@ -5,7 +5,7 @@ header("Content-Type: application/json; charset=UTF-8");
 require_once '../config/conexion.php';
 require_once '../auth/verificar_token.php';
 
-// Validar que solo el Administrador pueda descargar el reporte completo del historial
+// Validar que solo el Administrador o Recursos pueda descargar el reporte completo del historial
 if ($usuario_auth['rol'] !== 'administrador' && $usuario_auth['rol'] !== 'recursos') {
     http_response_code(403);
     echo json_encode(["error" => "No tienes permisos para exportar este reporte."]);
@@ -13,15 +13,18 @@ if ($usuario_auth['rol'] !== 'administrador' && $usuario_auth['rol'] !== 'recurs
 }
 
 try {
-    // Consulta con LEFT JOIN para traer los nombres legibles de áreas, proveedores y productos
+    // Consulta con LEFT JOIN para traer áreas, proveedores y ahora el USUARIO DEL SISTEMA
     $query = "SELECT m.id, p.nombre as producto, m.tipo, m.cantidad, 
                      COALESCE(a.nombre, 'N/A') as area, 
                      COALESCE(pr.empresa, 'N/A') as proveedor, 
-                     m.persona_responsable, m.motivo, m.fecha
+                     m.persona_responsable, 
+                     COALESCE(u.nombre, 'Desconocido') as usuario_sistema,
+                     m.motivo, m.fecha
               FROM movimientos m
               INNER JOIN productos p ON m.producto_id = p.id
               LEFT JOIN areas a ON m.area_id = a.id
               LEFT JOIN proveedores pr ON m.proveedor_id = pr.id
+              LEFT JOIN usuarios u ON m.id_usuario_despacha = u.id
               ORDER BY m.fecha DESC";
 
     $stmt = $conexion->prepare($query);
@@ -38,8 +41,8 @@ try {
     // Añadir el BOM de UTF-8 para que Excel reconozca bien los acentos (ñ, tildes, etc.)
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
-    // Escribir la fila de encabezados de las columnas
-    fputcsv($output, ['ID Movimiento', 'Producto', 'Tipo de Movimiento', 'Cantidad', 'Área Destino', 'Proveedor', 'Persona Responsable (¿Quién vino?)', 'Motivo', 'Fecha y Hora']);
+    // Escribir la fila de encabezados de las columnas (¡NUEVO CAMPO AÑADIDO!)
+    fputcsv($output, ['ID Movimiento', 'Producto', 'Tipo de Movimiento', 'Cantidad', 'Área Destino', 'Proveedor', 'Persona Responsable (¿Quién vino?)', 'Usuario que Despacha (Sistema)', 'Motivo', 'Fecha y Hora']);
 
     // Escribir cada fila del historial obtenida de la base de datos
     foreach ($movimientos as $row) {
@@ -51,6 +54,7 @@ try {
             $row['area'],
             $row['proveedor'],
             $row['persona_responsable'],
+            $row['usuario_sistema'], // ¡NUEVO DATO EN EL REPORTE!
             $row['motivo'],
             $row['fecha']
         ]);
