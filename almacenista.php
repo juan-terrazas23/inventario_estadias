@@ -14,9 +14,25 @@
     <link rel="stylesheet" href="css/estilos.css">
 
     <script>
-        if (!localStorage.getItem('token')) {
-            window.location.href = 'index.php';
-        }
+        (function () {
+            const token = localStorage.getItem('token');
+            const rol = localStorage.getItem('rol_usuario') ? localStorage.getItem('rol_usuario').toLowerCase() : '';
+
+            if (!token) {
+                window.location.replace('index.php');
+                return;
+            }
+
+            // Si el rol NO es de almacén o admin...
+            if (rol !== 'almacen' && rol !== 'almacenista' && rol !== 'admin' && rol !== 'administrador') {
+                if (rol === 'recursos' || rol === 'compras') {
+                    window.location.replace('compras.php');
+                } else {
+                    localStorage.clear();
+                    window.location.replace('index.php?error=rol_invalido');
+                }
+            }
+        })();
     </script>
 </head>
 
@@ -400,7 +416,7 @@
     <!-- NUEVO: Script de Tom Select -->
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
-    <script src="js/almacen.js?v=7"></script>
+    <script src="js/almacen.js?v=13"></script>
 </body>
 
 </html>

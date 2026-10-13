@@ -2,6 +2,38 @@
 const BASE_URL = 'backend';
 const token = localStorage.getItem('token');
 
+// --- SEGURIDAD: CIERRE DE SESIÓN POR INACTIVIDAD (20 MINUTOS) ---
+let temporizadorInactividad;
+
+function reiniciarTemporizador() {
+    clearTimeout(temporizadorInactividad);
+    temporizadorInactividad = setTimeout(expulsarUsuario, 900000); // 900000 ms = 15 min
+}
+
+function expulsarUsuario() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('nombre_usuario');
+    localStorage.removeItem('rol_usuario');
+    
+    Swal.fire({
+        icon: 'info',
+        title: 'Sesión expirada',
+        text: 'Tu sesión se cerró por inactividad para proteger el inventario.',
+        confirmButtonColor: '#8c837b',
+        timer: 3000,
+        showConfirmButton: false
+    }).then(() => {
+        window.location.href = 'index.php';
+    });
+}
+
+// Escuchar interacciones para reiniciar el reloj
+window.onload = reiniciarTemporizador;
+document.onmousemove = reiniciarTemporizador;
+document.onkeypress = reiniciarTemporizador;
+document.onclick = reiniciarTemporizador;
+document.onscroll = reiniciarTemporizador;
+
 if (!token) {
     window.location.href = 'index.php';
 }
@@ -252,6 +284,10 @@ btnRegistrar.addEventListener('click', async () => {
         return;
     }
 
+    // NUEVO: Bloquear el botón justo antes de empezar a guardar
+    btnRegistrar.disabled = true;
+    btnRegistrar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+
     try {
         for (let itemCarrito of carritoRequisicion) {
             const personaRecibe = inputPersonaResponsable ? inputPersonaResponsable.value.trim() : '';
@@ -331,7 +367,12 @@ btnRegistrar.addEventListener('click', async () => {
         }).catch(e => console.log('Alerta correo:', e));
 
     } catch (error) {
-        console.error('Error al registrar la entrega:', error);
+    console.error('Error al registrar la entrega:', error);
+    Swal.fire('Error de conexión', 'No se pudo conectar con el servidor. Verifica tu internet e intenta de nuevo.', 'error');
+} finally {
+        // NUEVO: Desbloquear el botón pase lo que pase
+        btnRegistrar.disabled = false;
+        btnRegistrar.innerHTML = 'Registrar Entrega Completa';
     }
 });
 
@@ -368,15 +409,17 @@ async function actualizarVistaHistorial() {
                 // Creamos una "llave" única para juntar todo lo de ese mismo momento y persona
                 let llaveRequisicion = `${fechaDia}_${horaMin}_${m.persona_responsable}_${m.tipo}`;
 
+                // En la declaración del objeto agrupado:
                 if (!movimientosAgrupados[llaveRequisicion]) {
                     movimientosAgrupados[llaveRequisicion] = {
                         fechaDia: fechaDia,
                         horaMin: horaMin,
                         tipo: m.tipo,
-                        responsable: m.persona_responsable,
+                        // m.persona_responsable es el que recibe, m.usuario_sistema es tu almacenista
+                        responsable: `<b>Recibió:</b> ${m.persona_responsable || 'N/A'}<br><small class="text-muted">Despachó: ${m.usuario_sistema || 'Sistema'}</small>`,
                         destinoOProcedencia: m.area ? `Área: ${m.area}` : (m.proveedor ? `Prov: ${m.proveedor}` : 'N/A'),
                         motivo: m.motivo,
-                        insumos: [] // Aquí meteremos la lista de lo que se llevó
+                        insumos: [] 
                     };
                 }
                 
@@ -550,6 +593,10 @@ if (btnRegistrarEntrada) {
             return;
         }
 
+        // NUEVO: Bloquear el botón justo antes de empezar a guardar
+        btnRegistrar.disabled = true;
+        btnRegistrar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+
         try {
            for (let itemCarrito of carritoEntradas) {
                 await fetch(`${BASE_URL}/movimientos/post_movimiento.php`, {
@@ -596,7 +643,12 @@ if (btnRegistrarEntrada) {
             cargarInventarioDesdeBD();
             actualizarVistaHistorial();
         } catch (error) {
-            console.error('Error al registrar entrada:', error);
+            console.error('Error al registrar la entrega:', error);
+            Swal.fire('Error de conexión', 'No se pudo conectar con el servidor. Verifica tu internet e intenta de nuevo.', 'error');
+        } finally {
+            // NUEVO: Desbloquear el botón pase lo que pase
+            btnRegistrar.disabled = false;
+            btnRegistrar.innerHTML = 'Registrar Entrega Completa';
         }
     });
 }

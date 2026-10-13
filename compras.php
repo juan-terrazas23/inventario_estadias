@@ -10,9 +10,29 @@
     <!-- Tu hoja de estilos externa se mantiene intacta -->
     <link rel="stylesheet" href="css/estilos.css">
     <script>
-        if (!localStorage.getItem('token')) {
-            window.location.href = 'index.php';
-        }
+        (function () {
+            // Leemos directamente el token y el rol que tu compañero ya nos dejó en LocalStorage
+            const token = localStorage.getItem('token');
+            const rol = localStorage.getItem('rol_usuario') ? localStorage.getItem('rol_usuario').toLowerCase() : '';
+
+            // 1. Si no hay token, a la calle
+            if (!token) {
+                window.location.replace('index.php');
+                return;
+            }
+
+            // 2. Si el rol NO es de compras o admin...
+            if (rol !== 'recursos' && rol !== 'admin' && rol !== 'administrador') {
+                // Si es almacenista, lo mandamos a su panel pacíficamente
+                if (rol === 'almacen' || rol === 'almacenista') {
+                    window.location.replace('almacenista.php');
+                } else {
+                    // Rol inválido, lo sacamos
+                    localStorage.clear();
+                    window.location.replace('index.php?error=rol_invalido');
+                }
+            }
+        })();
     </script>
 </head>
 
@@ -428,7 +448,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- NUEVO: Conexión limpia a la lógica de JavaScript -->
-    <script src="js/compras.js?v=8"></script>
+    <script src="js/compras.js?v=15"></script>
 </body>
 
 </html>

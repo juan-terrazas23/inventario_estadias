@@ -1,6 +1,38 @@
 const BASE_URL = 'backend';
 const token = localStorage.getItem('token');
 
+// --- SEGURIDAD: CIERRE DE SESIÓN POR INACTIVIDAD (15 MINUTOS) ---
+let temporizadorInactividad;
+
+function reiniciarTemporizador() {
+    clearTimeout(temporizadorInactividad);
+    temporizadorInactividad = setTimeout(expulsarUsuario, 600000); // 600000 ms = 10 min
+}
+
+function expulsarUsuario() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('nombre_usuario');
+    localStorage.removeItem('rol_usuario');
+    
+    Swal.fire({
+        icon: 'info',
+        title: 'Sesión expirada',
+        text: 'Tu sesión se cerró por inactividad para proteger el inventario.',
+        confirmButtonColor: '#8c837b',
+        timer: 3000,
+        showConfirmButton: false
+    }).then(() => {
+        window.location.href = 'index.php';
+    });
+}
+
+// Escuchar interacciones para reiniciar el reloj
+window.onload = reiniciarTemporizador;
+document.onmousemove = reiniciarTemporizador;
+document.onkeypress = reiniciarTemporizador;
+document.onclick = reiniciarTemporizador;
+document.onscroll = reiniciarTemporizador;
+
 let instanciaGrafica = null;
 let chartTopProductos = null;
 let chartTopAreas = null;
@@ -515,12 +547,14 @@ async function cargarHistorialCompras() {
                 
                 let llaveRequisicion = `${fechaDia}_${horaMin}_${m.persona_responsable}_${m.tipo}`;
 
+                // En la declaración del objeto agrupado:
                 if (!movimientosAgrupados[llaveRequisicion]) {
                     movimientosAgrupados[llaveRequisicion] = {
                         fechaDia: fechaDia,
                         horaMin: horaMin,
                         tipo: m.tipo,
-                        responsable: m.persona_responsable,
+                        // m.persona_responsable es el que recibe, m.usuario_sistema es tu almacenista
+                        responsable: `<b>Recibió:</b> ${m.persona_responsable || 'N/A'}<br><small class="text-muted">Despachó: ${m.usuario_sistema || 'Sistema'}</small>`,
                         destinoOProcedencia: m.area ? `Área: ${m.area}` : (m.proveedor ? `Prov: ${m.proveedor}` : 'N/A'),
                         motivo: m.motivo,
                         insumos: [] 
