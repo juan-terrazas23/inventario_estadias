@@ -3,6 +3,7 @@ header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 
 require_once '../config/conexion.php';
+require_once '../auth/verificar_token.php';
 
 try {
     // Traemos las áreas para llenar el select (ej. para registrar una Salida)
