@@ -712,6 +712,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    // Quitar el focus de los botones al cerrar el modal para evitar warnings de consola
+    const modalHistorial = document.getElementById('modalHistorial');
+    if (modalHistorial) {
+        modalHistorial.addEventListener('hide.bs.modal', () => {
+            if (document.activeElement) {
+                document.activeElement.blur(); // "Suelta" el botón seleccionado
+            }
+        });
+    }
 });
 
 // --- CERRAR SESIÓN ---

@@ -49,7 +49,7 @@
                     data-bs-target="#modalHistorial">
                     <i class="bi bi-clock-history me-1"></i> Historial
                 </button>
-                <span class="navbar-text text-dark border-start ps-3 pe-2">
+                <span class="navbar-text text-dark border-start ps-3 pe-2 d-none d-md-block">
                     Perfil: Almacenista
                 </span>
                 <!-- Botón de Cerrar Sesión -->
@@ -404,9 +404,6 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="modal-footer" style="border-top: 1px solid #dcd7d0;">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
             </div>
         </div>
     </div>
@@ -416,7 +413,7 @@
     <!-- NUEVO: Script de Tom Select -->
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
-    <script src="js/almacen.js?v=13"></script>
+    <script src="js/almacen.js?v=14"></script>
 </body>
 
 </html>

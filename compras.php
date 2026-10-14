@@ -50,7 +50,7 @@
                     <i class="bi bi-clock-history me-1"></i> Historial y Exportación
                 </button>
 
-                <span class="navbar-text text-dark mb-0 border-start ps-3 pe-2">
+                <span class="navbar-text text-dark border-start ps-3 pe-2 d-none d-md-block">
                     Perfil: Administrador
                 </span>
                 <!-- Botón de Cerrar Sesión -->
@@ -448,7 +448,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- NUEVO: Conexión limpia a la lógica de JavaScript -->
-    <script src="js/compras.js?v=15"></script>
+    <script src="js/compras.js?v=16"></script>
 </body>
 
 </html>
