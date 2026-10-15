@@ -149,6 +149,7 @@ async function cargarInventarioDesdeBD() {
             descripcion: p.nombre, 
             stock: parseInt(p.stock),
             stock_minimo: parseInt(p.stock_minimo) || 5,
+            stock_maximo: parseInt(p.stock_maximo) || 20,
             categoria_id: parseInt(p.categoria_id) 
         })); 
         
@@ -658,6 +659,7 @@ const inputNuevoId = document.getElementById('nuevo-id');
 const inputNuevaDesc = document.getElementById('nueva-descripcion');
 const inputNuevoStockIni = document.getElementById('nuevo-stock-inicial');
 const inputNuevoStockMin = document.getElementById('nuevo-stock-minimo');
+const inputNuevoStockMax = document.getElementById('nuevo-stock-maximo');
 const selectNuevaCategoria = document.getElementById('nueva-categoria'); 
 const btnGuardarArticulo = document.getElementById('btn-guardar-articulo');
 const tablaGestionCatalogo = document.getElementById('tabla-gestion-catalogo');
@@ -680,6 +682,7 @@ function renderizarCatalogoGeneral(datos = inventarioGlobal) {
                 <td class="fw-medium">${articulo.descripcion}</td>
                 <td>${articulo.stock}</td>
                 <td>${articulo.stock_minimo}</td>
+                <td>${articulo.stock_maximo}</td>
             </tr>
         `;
     });
@@ -707,10 +710,11 @@ if (btnGuardarArticulo) {
         const descripcion = inputNuevaDesc.value.trim().toUpperCase();
         const stock = parseInt(inputNuevoStockIni.value);
         const stockMinimo = parseInt(inputNuevoStockMin.value); 
+        const stockMaximo = parseInt(inputNuevoStockMax.value); // NUEVO
         const categoriaSeleccionada = selectNuevaCategoria.value;
 
-        if (descripcion === '' || isNaN(stock) || isNaN(stockMinimo) || selectNuevaUnidad.value === '' || categoriaSeleccionada === '') {
-            Swal.fire({ icon: 'warning', title: 'Campos incompletos', text: 'Por favor llena la descripción, la categoría, la unidad, el stock inicial y el stock mínimo.', confirmButtonColor: '#8c837b' });
+        if (descripcion === '' || isNaN(stock) || isNaN(stockMinimo) || isNaN(stockMaximo) || selectNuevaUnidad.value === '' || categoriaSeleccionada === '') {
+            Swal.fire({ icon: 'warning', title: 'Campos incompletos', text: 'Por favor llena todos los campos, incluyendo el stock máximo.', confirmButtonColor: '#8c837b' });
             return;
         }
 
@@ -726,6 +730,7 @@ if (btnGuardarArticulo) {
                     precio: 0, 
                     stock: stock, 
                     stock_minimo: stockMinimo, 
+                    stock_maximo: stockMaximo, // NUEVO: Se lo mandamos a tu compañero
                     categoria_id: parseInt(categoriaSeleccionada),
                     unidad_id: parseInt(selectNuevaUnidad.value) 
                 })
@@ -741,11 +746,13 @@ if (btnGuardarArticulo) {
                     showConfirmButton: false
                 });
 
+                // Limpiamos los campos
                 inputNuevaDesc.value = '';
                 selectNuevaUnidad.value = ''; 
                 selectNuevaCategoria.value = ''; 
                 inputNuevoStockIni.value = '';
                 inputNuevoStockMin.value = ''; 
+                inputNuevoStockMax.value = ''; // NUEVO
                 
                 cargarInventarioDesdeBD();
             } else {
@@ -901,6 +908,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.activeElement.blur(); // "Suelta" el botón seleccionado
             }
         });
+    }
+    // Mostrar el nombre del usuario en la barra superior
+    const spanPerfil = document.getElementById('nombre-perfil-nav');
+    if (spanPerfil) {
+        const nombreUsr = localStorage.getItem('nombre_usuario') || 'Usuario';
+        spanPerfil.innerHTML = `<i class="bi bi-person-circle me-1"></i> Hola, <b>${nombreUsr}</b>`;
     }
 });
 

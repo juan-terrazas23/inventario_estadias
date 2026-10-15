@@ -722,6 +722,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    // Mostrar el nombre del usuario en la barra superior
+    const spanPerfil = document.getElementById('nombre-perfil-nav');
+    if (spanPerfil) {
+        const nombreUsr = localStorage.getItem('nombre_usuario') || 'Usuario';
+        spanPerfil.innerHTML = `<i class="bi bi-person-circle me-1"></i> Hola, <b>${nombreUsr}</b>`;
+    }
 });
 
 // --- CERRAR SESIÓN ---

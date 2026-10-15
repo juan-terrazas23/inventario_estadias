@@ -49,8 +49,8 @@
                     data-bs-target="#modalHistorial">
                     <i class="bi bi-clock-history me-1"></i> Historial
                 </button>
-                <span class="navbar-text text-dark border-start ps-3 pe-2 d-none d-md-block">
-                    Perfil: Almacenista
+                <span id="nombre-perfil-nav" class="navbar-text text-dark border-start ps-3 pe-2 d-none d-md-block">
+                    Perfil: Cargando...
                 </span>
                 <!-- Botón de Cerrar Sesión -->
                 <button id="btn-cerrar-sesion" class="btn btn-sm btn-outline-danger shadow-sm" title="Cerrar Sesión">
@@ -317,6 +317,11 @@
                                     <input type="number" class="form-control" id="nuevo-stock-minimo" min="1"
                                         placeholder="Ej. 5">
                                 </div>
+                                <div class="mb-3">
+                                    <label for="nuevo-stock-maximo" class="form-label">Stock Máximo (Límite)</label>
+                                    <input type="number" class="form-control" id="nuevo-stock-maximo" min="1"
+                                        placeholder="Ej. 50">
+                                </div>
                                 <button type="button" id="btn-guardar-articulo" class="btn btn-custom w-100">
                                     <i class="bi bi-check-circle me-2"></i>Guardar en el Catálogo
                                 </button>
@@ -359,6 +364,7 @@
                                             <th>Descripción</th>
                                             <th>Stock Actual</th>
                                             <th>Mínimo</th>
+                                            <th>Máximo</th> <!-- NUEVA COLUMNA -->
                                         </tr>
                                     </thead>
                                     <tbody id="tabla-gestion-catalogo">
@@ -413,7 +419,7 @@
     <!-- NUEVO: Script de Tom Select -->
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
-    <script src="js/almacen.js?v=14"></script>
+    <script src="js/almacen.js?v=15"></script>
 </body>
 
 </html>
